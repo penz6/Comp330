@@ -1,0 +1,20 @@
+import pandas as pd
+
+# Define the data
+data = {
+    'Name': ["Adams, Emily", "Black, John", "Collins, Sarah", "Diaz, Michael", "Evans, Olivia", "Foster, Liam"],
+    'ID': [345678, 567123, 789456, 345987, 654321, 321654],
+    'Grade': ['A', 'B+', 'C+', 'A-', 'B', 'C']
+}
+
+# Create a DataFrame
+df = pd.DataFrame(data)
+
+# Split the Name column into Last Name and First Name
+df[['Last Name', 'First Name']] = df['Name'].str.split(',', expand=True)
+
+# Drop the original Name column
+df = df.drop(columns=['Name'])
+
+# Display the updated DataFrame
+print(df)
