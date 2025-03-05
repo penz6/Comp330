@@ -18,18 +18,25 @@ class fileReader:
         dictionary = list(data.values())
         #if the correct file type
         if name.split(".")[2] == "SEC":
+            #counter to skip one
+            skip_one = 0
             # iterate through the file
             with open(name, 'r') as file:
                 for line in file:
-                    temp_list = line.split(",")
-                    #counter for templist
-                    tempcounter = 0
-                    #for the item in the temp list
-                    for item in temp_list:
-                        #append to list
-                        dictionary[tempcounter].append(item.rstrip())
-                        #increment tempcount
-                        tempcounter+=1
+                    skip_one+=1
+                    #if first line
+                    if skip_one == 1:
+                        #nothing
+                    else:
+                        temp_list = line.split(",")
+                        #counter for templist
+                        tempcounter = 0
+                        #for the item in the temp list
+                        for item in temp_list:
+                            #append to list
+                            dictionary[tempcounter].append(item.rstrip())
+                            #increment tempcount
+                            tempcounter+=1
             #return
             return pd.DataFrame(data)
                         
