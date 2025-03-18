@@ -1,28 +1,41 @@
 # import
-from tkinter import *
+import tkinter as tk
 
+#new class
+class gradeGUI(tk.Tk):
+    #init function for class gradegui
+    def __init__(self,*args,**kwargs):
+        #init for class
+        tk.Tk.__init__(self,*args,**kwargs)
+        #new container
+        container = tk.Frame(self)
+        container.pack(side = 'top',fill = 'both',expand = True)
+        #new empty frames
+        self.frames = {}
 
-# new root window
-root = Tk()
+        #get all of the page layouts
+        for F in (HomePage,):
+            frame = F(container,self)
+            self.frames[F] = frame
+            #pack the frame
+            frame.pack(fill="both", expand=True)
 
-#Set title of window
-root.title("Grade Analyzer")
-#default dimensions
-root.geometry('1000x500')
+        #show the homepage
+        self.show_frame(HomePage)
+        #show the current frame
+    def show_frame(self,cont):
+        frame=self.frames[cont]
+        frame.tkraise()
 
-#create a top menu bar
-menu = Menu(root)
-item = Menu(menu)
+#homepage class
+class HomePage(tk.Frame):
+    def __init__(self,parent,controller):
+        tk.Frame.__init__(self,parent)
+        #homepage text
+        homepagelabel = tk.Label(self,text = "Welcome to the PGUA^2 Grade Analyzer",font=("Arial",18,"bold"),padx=20,pady=30)
+        #apply grid
+        homepagelabel.pack()
+        
 
-#display the home text
-homelabel = Label(root,text="Welcome to the PGUA^2 Grade Anaylzer ",anchor=CENTER,height=5,font=("Arial",18,"bold"))
-#use pack to dynaimcally resize text
-homelabel.pack()
-
-#overall button
-overallbutton = Button(root,text="See Overall Performance")
-overallbutton.pack(anchor=S)
-underperformingbutton = Button(root,text="See Underperforming Students")
-underperformingbutton.pack(anchor=S)
-#run tkinter
-root.mainloop()
+#run gui
+gradeGUI().mainloop()
