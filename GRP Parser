@@ -1,0 +1,30 @@
+import pandas as pd
+
+# Function to parse a GRP file
+def parse_grp_file(grp_file_path, delimiter=','):
+    """
+    Parses a GRP file that contains structured data and loads it into a Pandas DataFrame.
+    
+    :param grp_file_path: Path to the GRP file (CSV or tab-delimited, etc.)
+    :param delimiter: The delimiter that separates the data (default is comma)
+    :return: A Pandas DataFrame with the data from the GRP file
+    """
+    try:
+        # Read the GRP file into a DataFrame
+        df = pd.read_csv(grp_file_path, delimiter=delimiter)  # You can modify the delimiter as needed
+        
+        # Return the resulting DataFrame
+        return df
+    except Exception as e:
+        print(f"Error reading the GRP file: {e}")
+        return None
+
+# Example usage:
+grp_file_path = 'grp_file.csv'  # Replace with your actual GRP file path
+df = parse_grp_file(grp_file_path)
+
+# Print the resulting DataFrame
+if df is not None:
+    print(df)
+else:
+    print("Failed to parse the GRP file.")
