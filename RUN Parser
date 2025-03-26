@@ -1,0 +1,28 @@
+import pandas as pd
+
+# Function to parse the run file and load it into a DataFrame
+def run_file_to_dataframe(run_file_path, delimiter=','):
+    """
+    Parses a RUN file that contains structured data and loads it into a Pandas DataFrame.
+    
+    :param run_file_path: Path to the RUN file (CSV or tab-delimited, etc.)
+    :param delimiter: The delimiter that separates the data (default is comma)
+    :return: A Pandas DataFrame with the data from the RUN file
+    """
+    try:
+        # Read the RUN file into a DataFrame
+        df = pd.read_csv(run_file_path, delimiter=delimiter)  # You can change this to read other formats as needed
+        
+        # Print or return the DataFrame
+        return df
+    except Exception as e:
+        print(f"Error reading the RUN file: {e}")
+        return None
+
+# Example usage:
+run_file_path = 'run_file.csv'  # Replace with your actual run file path
+df = run_file_to_dataframe(run_file_path)
+
+# Print the resulting DataFrame
+if df is not None:
+    print(df)
