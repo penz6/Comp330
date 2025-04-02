@@ -5,9 +5,10 @@ from PIL import ImageTk, Image
 import sv_ttk as sv
 
 #global vars
-filepath = ""
+global filepath
 bigfont = ("Arial",18,"bold")
 buttonfont = ("Arial",11)
+#
 
 #new class
 class gradeGUI(tk.Tk):
@@ -25,7 +26,10 @@ class gradeGUI(tk.Tk):
         style.configure("TButton", font=buttonfont,padding=(10, 20))
         #new empty frames
         self.frames = {}
-
+        #new icon for home button
+        self.homebuttonicon = tk.PhotoImage(file = r"GUI/home.png")
+        #resize
+        self.homebuttonicon = self.homebuttonicon.subsample(3,3)
         #get all of the page layouts
         for F in (HomePage,DashBoard,SearchStudents,BottomPerformers,TopPerformers):
             frame = F(container,self)
@@ -57,7 +61,15 @@ class HomePage(tk.Frame):
     #get the file path
     def getFilePath(self,controller):
         filepath = askopenfilename()
-        controller.show_frame(DashBoard)
+        #throw error
+        try:
+            if filepath == "" or filepath.split(".")[1].lower() != "run":
+                #raise error
+                raise Exception("Incorrect file type")
+            controller.show_frame(DashBoard)
+        #catch
+        except:
+            tk.messagebox.showerror("Please choose a .run file to get started") 
 
 
 #dashboard
@@ -84,16 +96,51 @@ class DashBoard(tk.Frame):
 class SearchStudents(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
+        #pack the home button
+        homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton.pack(side=tk.TOP,anchor=tk.NW)
+        #create the search bar
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', self.filter_items)
+        self.search_entry = tk.ttk.Entry(self, font=buttonfont,textvariable=self.search_var)
+        self.search_entry.pack()
+
+        # Create ColumnView
+        self.column_view = tk.ttk.Treeview(self)
+
+        # Populate ColumnView with items
+        # Replace this with your own data population logic
+        for i in range(10):
+            self.column_view.insert('', 'end', text=f'Item {i}')
+        self.column_view.pack()
+
+    def filter_items(self, *args):
+        search_query = self.search_var.get()
+
 
 #top performers
 class TopPerformers(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
+        #pack the home button
+        homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton.pack(side=tk.TOP,anchor=tk.NW)
+        self.graph = ImageTk.PhotoImage(Image.open("/home/penn/Documents/Compsci/Comp330/GUI/demograph.png"))
+        graphlabel = tk.Label(self,image=self.graph)
+        graphlabel.pack(fill="x")
 
 #bottom performers
 class BottomPerformers(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
+        #pack the home button
+        homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton.pack(side=tk.TOP,anchor=tk.NW)
+        #display the graph
+        self.graph = ImageTk.PhotoImage(Image.open("/home/penn/Documents/Compsci/Comp330/GUI/demograph.png"))
+        graphlabel = tk.Label(self,image=self.graph)
+        graphlabel.pack(fill="x")
+
 
 #run gui
 gradeGUI().mainloop()
