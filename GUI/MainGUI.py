@@ -1,11 +1,13 @@
 # import
+import os
 import tkinter as tk
-from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
 import sv_ttk as sv
-
+from pandastable import Table, TableModel, config
+from tkinter import filedialog
 #global vars
 global filepath
+options = config.load_options()
 bigfont = ("Arial",18,"bold")
 buttonfont = ("Arial",11)
 #
@@ -18,6 +20,19 @@ class gradeGUI(tk.Tk):
         tk.Tk.__init__(self,*args,**kwargs)
         #set theme
         sv.set_theme("dark")
+        #table options
+        options.update({
+        'cellbackgr': '#2b2b2b',
+        'textcolor': '#ffffff',
+        'grid_color': '#444444',
+        'rowselectedcolor': '#44475a',
+        'font': 'TkDefaultFont',
+        'fontsize': 10,
+        'rowheight': 20,
+        'colheadercolor': '#1e1e1e',
+        'colheaderfg': '#ffffff',
+        'fontsize': 14,
+        })
         #new container
         container = tk.Frame(self)
         container.pack(side = 'top',fill = 'both',expand = True)
@@ -30,6 +45,9 @@ class gradeGUI(tk.Tk):
         self.homebuttonicon = tk.PhotoImage(file = r"GUI/home.png")
         #resize
         self.homebuttonicon = self.homebuttonicon.subsample(3,3)
+        self.exportbuttonicon = tk.PhotoImage(file = r"GUI/export.png")
+        #resize
+        self.exportbuttonicon = self.exportbuttonicon.subsample(3,3)
         #get all of the page layouts
         for F in (HomePage,DashBoard,SearchStudents,BottomPerformers,TopPerformers):
             frame = F(container,self)
@@ -46,6 +64,10 @@ class gradeGUI(tk.Tk):
             frame.pack_forget()
         #now pack frame
         self.frames[cont].pack(fill="both", expand=True)
+    #export files to excel
+    def exportToHtml(self,df):
+        folder_path = filedialog.askdirectory()
+        df.to_html(open(os.path.join(folder_path,"gradeExport.html"), 'w'))
 
 #homepage class
 class HomePage(tk.Frame):
@@ -60,7 +82,7 @@ class HomePage(tk.Frame):
         openfilebutton.pack(padx=10, pady=10)
     #get the file path
     def getFilePath(self,controller):
-        filepath = askopenfilename()
+        filepath = filedialog.askopenfilename()
         #throw error
         try:
             if filepath == "" or filepath.split(".")[1].lower() != "run":
@@ -86,7 +108,7 @@ class DashBoard(tk.Frame):
         #buttons to go to different tabs
         lowestperformersbutton = tk.ttk.Button(self,text="See Lowester Performers",command=lambda:controller.show_frame(BottomPerformers),style="TButton")
         topperformersbutton = tk.ttk.Button(self,text="See Top Performers",command=lambda:controller.show_frame(TopPerformers),style="TButton")
-        searchstudentsbutton = tk.ttk.Button(self,text="Search Students",command=lambda:controller.show_frame(SearchStudents),style="TButton")
+        searchstudentsbutton = tk.ttk.Button(self,text="See your group breakdown",command=lambda:controller.show_frame(SearchStudents),style="TButton")
         #pack the buttons
         lowestperformersbutton.pack(padx=10, pady=10)
         topperformersbutton.pack(padx=10, pady=10)
@@ -99,47 +121,63 @@ class SearchStudents(tk.Frame):
         #pack the home button
         homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.TOP,anchor=tk.NW)
-        #create the search bar
-        self.search_var = tk.StringVar()
-        self.search_var.trace('w', self.filter_items)
-        self.search_entry = tk.ttk.Entry(self, font=buttonfont,textvariable=self.search_var)
-        self.search_entry.pack()
-
-        # Create ColumnView
-        self.column_view = tk.ttk.Treeview(self)
-
-        # Populate ColumnView with items
-        # Replace this with your own data population logic
-        for i in range(10):
-            self.column_view.insert('', 'end', text=f'Item {i}')
-        self.column_view.pack()
-
-    def filter_items(self, *args):
-        search_query = self.search_var.get()
+        
+        
 
 
 #top performers
 class TopPerformers(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
+        #frame for buttons
+        button_frame = tk.Frame(self)
+        button_frame.pack(side=tk.TOP, fill=tk.X)
         #pack the home button
-        homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
-        homebutton.pack(side=tk.TOP,anchor=tk.NW)
-        self.graph = ImageTk.PhotoImage(Image.open("/home/penn/Documents/Compsci/Comp330/GUI/demograph.png"))
-        graphlabel = tk.Label(self,image=self.graph)
-        graphlabel.pack(fill="x")
+        homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton.pack(side=tk.LEFT)
+        #export button
+        df = TableModel.getSampleData()
+        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(df))
+        exportbutton.pack(side=tk.LEFT)
+        #display the data frame
+        # create a container
+        table_frame = tk.Frame(self)
+        table_frame.pack(fill="both", expand=True)
+        #change to call data
+         #show table in the frame
+        self.table = Table(table_frame, dataframe=df, showtoolbar=False, showstatusbar=False, editable=False, config=options)
+        config.apply_options(options, self.table)
+        self.table.autoResizeColumns()
+        self.table.setRowHeight(50)
+        self.table.show()
+
 
 #bottom performers
 class BottomPerformers(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
+        #frame for buttons
+        button_frame = tk.Frame(self)
+        button_frame.pack(side=tk.TOP, fill=tk.X)
         #pack the home button
-        homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
-        homebutton.pack(side=tk.TOP,anchor=tk.NW)
-        #display the graph
-        self.graph = ImageTk.PhotoImage(Image.open("/home/penn/Documents/Compsci/Comp330/GUI/demograph.png"))
-        graphlabel = tk.Label(self,image=self.graph)
-        graphlabel.pack(fill="x")
+        homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton.pack(side=tk.LEFT)
+        #export button
+        df = TableModel.getSampleData()
+        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(df))
+        exportbutton.pack(side=tk.LEFT)
+        # use a container 
+        table_frame = tk.Frame(self)
+        table_frame.pack(fill="both", expand=True)
+        # change to call data
+        df = TableModel.getSampleData()
+        # show table in the frame
+        self.table = Table(table_frame, dataframe=df, showtoolbar=False, showstatusbar=False, editable=False, config=options)
+        config.apply_options(options, self.table)
+        self.table.autoResizeColumns()
+        self.table.setRowHeight(50)
+        self.table.show()
+        
 
 
 #run gui
