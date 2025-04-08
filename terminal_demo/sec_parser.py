@@ -91,7 +91,11 @@ def print_formatted_data(file_path):
 if __name__ == "__main__":
     # Define the path to the SEC file you want to process
     # Make sure this path is correct for your system
-    sample_file_path = r"COMSC330_POC_Data\Sections\COMSC110.01S25.SEC" 
+    # This path is relative and assumes the current working directory is set correctly.
+    # It may fail if the script is run from a different directory. Consider using an absolute path
+    # or a path relative to the script's location:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    sample_file_path = os.path.join(script_dir, "..", "COMSC330_POC_Data", "Sections", "COMSC110.01S25.SEC")
     
     print(f"Processing file: {sample_file_path}")
     print("-" * 30)
