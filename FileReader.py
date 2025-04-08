@@ -27,6 +27,7 @@ class fileReader:
                     #if first line
                     if skip_one == 1:
                         #nothing
+                        print("Skipped")
                     else:
                         temp_list = line.split(",")
                         #counter for templist
@@ -34,7 +35,7 @@ class fileReader:
                         #for the item in the temp list
                         for item in temp_list:
                             #append to list
-                            dictionary[tempcounter].append(item.rstrip())
+                            dictionary[tempcounter].append(item.strip('"\n'))
                             #increment tempcount
                             tempcounter+=1
             #return
@@ -43,3 +44,10 @@ class fileReader:
         else:
             # a bad thing happened
             raise Exception("Wrong File Type Passed")
+    def bulkReadSEC(filePath,secFileList):
+        secPath = filePath.split("/Run")[0]+"/Sections/"
+        secList = []
+        for secFile in secFileList:
+            secList.append(fileReader.readSEC(secPath+secFile))
+        return secList
+        

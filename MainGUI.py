@@ -5,8 +5,9 @@ from PIL import ImageTk, Image
 import sv_ttk as sv
 from pandastable import Table, TableModel, config
 from tkinter import filedialog
+from GoodAndBadList import Lists
 #global vars
-global filepath
+filepath = ""
 options = config.load_options()
 bigfont = ("Arial",18,"bold")
 buttonfont = ("Arial",11)
@@ -42,10 +43,10 @@ class gradeGUI(tk.Tk):
         #new empty frames
         self.frames = {}
         #new icon for home button
-        self.homebuttonicon = tk.PhotoImage(file = r"GUI/home.png")
+        self.homebuttonicon = tk.PhotoImage(file = r"home.png")
         #resize
         self.homebuttonicon = self.homebuttonicon.subsample(3,3)
-        self.exportbuttonicon = tk.PhotoImage(file = r"GUI/export.png")
+        self.exportbuttonicon = tk.PhotoImage(file = r"export.png")
         #resize
         self.exportbuttonicon = self.exportbuttonicon.subsample(3,3)
         #get all of the page layouts
@@ -62,12 +63,20 @@ class gradeGUI(tk.Tk):
         #hide non active frames
         for frame in self.frames.values():
             frame.pack_forget()
+        #if need to load data
+        if cont in (TopPerformers, BottomPerformers, SearchStudents):
+            self.frames[cont].load_data()
+
         #now pack frame
         self.frames[cont].pack(fill="both", expand=True)
     #export files to excel
     def exportToHtml(self,df):
         folder_path = filedialog.askdirectory()
-        df.to_html(open(os.path.join(folder_path,"gradeExport.html"), 'w'))
+        if folder_path == "":
+            #nothing
+            print("Cancelled")
+        else:
+            df.to_html(open(os.path.join(folder_path,"gradeExport.html"), 'w'))
 
 #homepage class
 class HomePage(tk.Frame):
@@ -82,6 +91,7 @@ class HomePage(tk.Frame):
         openfilebutton.pack(padx=10, pady=10)
     #get the file path
     def getFilePath(self,controller):
+        global filepath
         filepath = filedialog.askopenfilename()
         #throw error
         try:
@@ -101,10 +111,6 @@ class DashBoard(tk.Frame):
         #dashboard
         dashboardlabel= tk.Label(self,text="Here Is Your Dashboard", font=bigfont,padx=20,pady=30)
         dashboardlabel.pack()
-        #demo graph
-        self.graph = ImageTk.PhotoImage(Image.open("/home/penn/Documents/Compsci/Comp330/GUI/demograph.png"))
-        graphlabel = tk.Label(self,image=self.graph)
-        graphlabel.pack(fill="x")
         #buttons to go to different tabs
         lowestperformersbutton = tk.ttk.Button(self,text="See Lowester Performers",command=lambda:controller.show_frame(BottomPerformers),style="TButton")
         topperformersbutton = tk.ttk.Button(self,text="See Top Performers",command=lambda:controller.show_frame(TopPerformers),style="TButton")
@@ -114,6 +120,7 @@ class DashBoard(tk.Frame):
         topperformersbutton.pack(padx=10, pady=10)
         searchstudentsbutton.pack(padx=10, pady=10)
 
+
 #search students
 class SearchStudents(tk.Frame):
     def __init__(self,parent,controller):
@@ -122,8 +129,6 @@ class SearchStudents(tk.Frame):
         homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.TOP,anchor=tk.NW)
         
-        
-
 
 #top performers
 class TopPerformers(tk.Frame):
@@ -136,16 +141,29 @@ class TopPerformers(tk.Frame):
         homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.LEFT)
         #export button
-        df = TableModel.getSampleData()
-        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(df))
+        self.df = TableModel.getSampleData() # Initialize with sample data
+        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.df))
         exportbutton.pack(side=tk.LEFT)
         #display the data frame
         # create a container
-        table_frame = tk.Frame(self)
-        table_frame.pack(fill="both", expand=True)
-        #change to call data
-         #show table in the frame
-        self.table = Table(table_frame, dataframe=df, showtoolbar=False, showstatusbar=False, editable=False, config=options)
+        self.table_frame = tk.Frame(self)
+        self.table_frame.pack(fill="both", expand=True)
+        # Initialize table to None
+        self.table = None
+
+    def load_data(self):
+        global filepath
+        #get data
+        if filepath:
+            self.df = Lists.goodList(filepath)
+        else:
+            #if its empty
+            self.df = TableModel.getSampleData()
+        #remove old table
+        if self.table:
+            self.table.destroy()
+        #create the new table
+        self.table = Table(self.table_frame, dataframe=self.df, showtoolbar=False, showstatusbar=False, editable=False, config=options)
         config.apply_options(options, self.table)
         self.table.autoResizeColumns()
         self.table.setRowHeight(50)
@@ -166,18 +184,29 @@ class BottomPerformers(tk.Frame):
         df = TableModel.getSampleData()
         exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(df))
         exportbutton.pack(side=tk.LEFT)
-        # use a container 
-        table_frame = tk.Frame(self)
-        table_frame.pack(fill="both", expand=True)
-        # change to call data
-        df = TableModel.getSampleData()
-        # show table in the frame
-        self.table = Table(table_frame, dataframe=df, showtoolbar=False, showstatusbar=False, editable=False, config=options)
+        # create a container
+        self.table_frame = tk.Frame(self)
+        self.table_frame.pack(fill="both", expand=True)
+        # Initialize table to None
+        self.table = None
+
+    def load_data(self):
+        global filepath
+        #get data
+        if filepath:
+            self.df = Lists.badList(filepath)
+        else:
+            #if its empty
+            self.df = TableModel.getSampleData()
+        #remove old table
+        if self.table:
+            self.table.destroy()
+        #create the new table
+        self.table = Table(self.table_frame, dataframe=self.df, showtoolbar=False, showstatusbar=False, editable=False, config=options)
         config.apply_options(options, self.table)
         self.table.autoResizeColumns()
         self.table.setRowHeight(50)
         self.table.show()
-        
 
 
 #run gui
