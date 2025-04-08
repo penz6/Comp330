@@ -102,9 +102,12 @@ class DashBoard(tk.Frame):
         dashboardlabel= tk.Label(self,text="Here Is Your Dashboard", font=bigfont,padx=20,pady=30)
         dashboardlabel.pack()
         #demo graph
-        self.graph = ImageTk.PhotoImage(Image.open("/home/penn/Documents/Compsci/Comp330/GUI/demograph.png"))
-        graphlabel = tk.Label(self,image=self.graph)
-        graphlabel.pack(fill="x")
+
+        # COULDNT GET THIS TO WORK Need to set up demo graph properly
+        
+        # self.graph = ImageTk.PhotoImage(Image.open("Comp330/GUI/demograph.png"))
+        # graphlabel = tk.Label(self,image=self.graph)
+        # graphlabel.pack(fill="x")
         #buttons to go to different tabs
         lowestperformersbutton = tk.ttk.Button(self,text="See Lowester Performers",command=lambda:controller.show_frame(BottomPerformers),style="TButton")
         topperformersbutton = tk.ttk.Button(self,text="See Top Performers",command=lambda:controller.show_frame(TopPerformers),style="TButton")
