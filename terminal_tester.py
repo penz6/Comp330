@@ -8,6 +8,8 @@ from grp_parser import grpReader
 from FileReader import fileReader
 from GoodAndBadList import Lists
 import pandas as pd
+# Import the z-score calculator functions
+from zscore_calculator import analyze_sections
 
 def display_menu():
     """Display the main menu options to the user."""
@@ -21,9 +23,10 @@ def display_menu():
     print("5. Display bottom performers (F, D-)")
     print("6. Export data to HTML")
     print("7. Read individual SEC file")
-    print("8. Exit")
+    print("8. Perform Z-score analysis") # Added new menu option
+    print("9. Exit")
     print("="*50)
-    return input("Select an option (1-8): ")
+    return input("Select an option (1-9): ") # Updated to add new option
 
 def find_run_files(base_dir="C:\\Users\\Alex\\Desktop\\CLASS - CODE\\Comp330\\COMSC330_POC_Data"):
     """Find all RUN files in the base directory and its subdirectories."""
@@ -60,6 +63,7 @@ def main():
     top_performers = None
     bottom_performers = None
     sec_data = None
+    zscore_results = None # Added for storing z-score analysis results
     
     while True:
         choice = display_menu()
@@ -174,7 +178,8 @@ def main():
             print("1. Export top performers")
             print("2. Export bottom performers")
             print("3. Export SEC file data")
-            export_choice = input("Select data to export (1-3): ")
+            print("4. Export Z-score analysis") # Added new export option
+            export_choice = input("Select data to export (1-4): ") # Updated prompt
             
             if export_choice == '1':
                 if top_performers is None:
@@ -191,6 +196,11 @@ def main():
                     print("Error: Please read a SEC file first (option 7)!")
                     continue
                 export_to_html(sec_data, "sec_data")
+            elif export_choice == '4':
+                if zscore_results is None:
+                    print("Error: Please perform Z-score analysis first (option 8)!")
+                    continue
+                export_to_html(zscore_results, "zscore_analysis")
             else:
                 print("Invalid export option!")
         
@@ -241,12 +251,63 @@ def main():
                 print(f"Error reading SEC file: {e}")
         
         elif choice == '8':
+            # Perform Z-score analysis
+            if not run_file:
+                print("Error: Please load a RUN file first (option 1)!")
+                continue
+            
+            if not grp_files:
+                print("Error: Please load groups first (option 2)!")
+                continue
+                
+            if not sec_files:
+                print("Error: Please load sections first (option 3)!")
+                continue
+                
+            try:
+                print("Performing Z-score analysis...")
+                # Set significance threshold
+                threshold = 1.96  # Default value (95% confidence)
+                custom_threshold = input("Enter significance threshold (default is 1.96): ")
+                if custom_threshold.strip() and custom_threshold.replace('.', '', 1).isdigit():
+                    threshold = float(custom_threshold)
+                
+                # Run the analysis
+                result_data, zscore_results = analyze_sections(run_file, grp_files, sec_files, threshold)
+                
+                # Display results
+                if not result_data:
+                    print("No results found!")
+                else:
+                    print(f"\nFound {len(result_data)} sections to analyze:")
+                    print("\nStatistical Summary:")
+                    print(f"Group GPA: {result_data[0]['group_gpa']}")
+                    print(f"Group Std Dev: {result_data[0]['group_std']}")
+                    
+                    # Print all section results
+                    print("\nSection Z-score Analysis:")
+                    print("-" * 80)
+                    print(f"{'Section':<15} {'GPA':<6} {'Count':<6} {'Z-score':<10} {'P-value':<10} {'Significant':<10}")
+                    print("-" * 80)
+                    
+                    for result in result_data:
+                        z_score = result['z_score']
+                        p_value = result['p_value']
+                        z_display = f"{z_score:.2f}" if isinstance(z_score, (int, float)) else z_score
+                        p_display = f"{p_value:.4f}" if isinstance(p_value, (int, float)) else p_value
+                        
+                        print(f"{result['section']:<15} {result['section_gpa']:<6} {result['section_count']:<6} {z_display:<10} {p_display:<10} {'Yes' if result['significant'] else 'No':<10}")
+            
+            except Exception as e:
+                print(f"Error performing Z-score analysis: {e}")
+        
+        elif choice == '9':  # Updated from 8 to 9
             # Exit
             print("Exiting program. Goodbye!")
             sys.exit(0)
         
         else:
-            print("Invalid option! Please select a number between 1 and 8.")
+            print("Invalid option! Please select a number between 1 and 9.")  # Updated from 8 to 9
         
         input("\nPress Enter to continue...")
 
