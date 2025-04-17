@@ -2,6 +2,16 @@ import os
 
 #group parser
 def grpReader(filepath, grpFileArray):
+    """
+    Parses group files to extract section filenames.
+    
+    Args:
+        filepath (str): Path to the run file.
+        grpFileArray (list of str): List of group file names to read.
+    
+    Returns:
+        list of str: List of section filenames extracted from the group files.
+    """
     #empty list
     files = []
     #sec file path using OS path functions
