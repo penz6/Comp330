@@ -13,11 +13,13 @@ This module includes:
   - analyze_sections: load data, run analysis, return JSON‐ready results
 """
 
+
 from scipy.stats import norm
 import argparse
 import json
 import pandas as pd
 import os
+
 
 def letter_to_gpa(grade):
     """
@@ -47,6 +49,7 @@ def letter_to_gpa(grade):
         'F': 0.0  # F is worth 0 but included in GPA
     }
     return conversion.get(grade, 0.0)
+
 
 def compute_z_score(sample_mean: float, population_mean: float, population_std: float) -> float:
     """
@@ -98,6 +101,7 @@ def is_significant(z_score: float, threshold: float = 2.0) -> bool:
     """
     return abs(z_score) >= threshold
 
+
 def calculate_section_stats(section_df):
     """
     Compute average GPA and count of valid grades for a section.
@@ -121,6 +125,7 @@ def calculate_section_stats(section_df):
     mean_gpa = sum(gpas) / len(gpas) if gpas else 0
     
     return mean_gpa, len(gpas)
+
 
 def calculate_group_stats(section_dfs):
     """
@@ -152,6 +157,7 @@ def calculate_group_stats(section_dfs):
     std_dev = variance ** 0.5
     
     return mean, std_dev
+
 
 def analyze_sections(run_file, grp_files, sec_files, threshold=2.0):
     """

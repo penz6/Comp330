@@ -11,6 +11,35 @@ def runReader(runFile):
     Returns:
         list of str: List of section filenames extracted from the run file.
     """
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     #inital zero
     lines = []
     #Get base directory and construct groups path using proper OS path functions

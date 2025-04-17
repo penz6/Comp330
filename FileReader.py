@@ -70,6 +70,7 @@ class fileReader:
             # a bad thing happened
             raise Exception("Wrong File Type Passed")
             
+
     def bulkReadSEC(filePath, secFileList):
         """
         Load multiple section files relative to a run file path.
