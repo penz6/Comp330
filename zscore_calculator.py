@@ -1,8 +1,16 @@
 """
 zscore_calculator.py
 
-Provides simple Z-score calculations for section vs. group GPA comparisons,
-plus a command-line interface that outputs results in JSON.
+Module to compute and analyze Z-scores for course section GPAs relative to group GPAs.
+
+This module includes:
+  - letter_to_gpa: convert letter grades to numeric GPA (with exclusions)
+  - compute_z_score: calculate Z-score given sample and population stats
+  - compute_p_value: compute two‐tailed p‐value for a Z‐score
+  - is_significant: test if a Z‐score exceeds a threshold
+  - calculate_section_stats: mean GPA and count of valid grades per section
+  - calculate_group_stats: mean and stddev across sections
+  - analyze_sections: load data, run analysis, return JSON‐ready results
 """
 
 from scipy.stats import norm
@@ -13,9 +21,15 @@ import os
 
 def letter_to_gpa(grade):
     """
-    Convert letter grade to GPA value.
-    F grade = 0.0 points (included in GPA)
-    I, W, P, NP grades are excluded from GPA calculations
+    Convert a letter grade to its numeric GPA value.
+
+    Excludes incomplete, withdrawal, pass, and non-pass grades.
+
+    Args:
+        grade (str): Letter grade (e.g., 'A', 'B+', 'NP').
+
+    Returns:
+        float or None: GPA value for valid grades; None for exclusions.
     """
     # Grades that should be excluded from GPA calculation
     excluded_grades = ["I", "W", "P", "NP"]
@@ -36,8 +50,20 @@ def letter_to_gpa(grade):
 
 def compute_z_score(sample_mean: float, population_mean: float, population_std: float) -> float:
     """
-    Compute the Z-score: (sample_mean - population_mean) / population_std.
-    Raises ValueError if population_std is zero.
+    Compute the Z-score for a sample mean.
+
+    Uses formula: (sample_mean - population_mean) / population_std.
+
+    Args:
+        sample_mean (float): Sample mean (e.g., section GPA).
+        population_mean (float): Population mean (e.g., group GPA).
+        population_std (float): Population standard deviation.
+
+    Returns:
+        float: Calculated Z-score.
+
+    Raises:
+        ValueError: If population_std is zero.
     """
     if population_std == 0:
         raise ValueError("Population standard deviation cannot be zero.")
@@ -46,19 +72,44 @@ def compute_z_score(sample_mean: float, population_mean: float, population_std: 
 
 def compute_p_value(z_score: float) -> float:
     """
-    Compute two-tailed p-value for a given Z-score.
+    Calculate the two‐tailed p‐value from a Z-score.
+
+    Args:
+        z_score (float): Z-score value.
+
+    Returns:
+        float: Two‐tailed p‐value.
     """
     return 2 * (1 - norm.cdf(abs(z_score)))
 
 
 def is_significant(z_score: float, threshold: float = 2.0) -> bool:
     """
-    Returns True if z≤-2 or z≥2 (or custom threshold).
+    Determine if a Z-score is statistically significant.
+
+    A Z-score is significant if |z_score| ≥ threshold.
+
+    Args:
+        z_score (float): Z-score value.
+        threshold (float): Significance threshold (default 2.0).
+
+    Returns:
+        bool: True if significant, else False.
     """
     return abs(z_score) >= threshold
 
 def calculate_section_stats(section_df):
-    """Calculate GPA statistics for a section."""
+    """
+    Compute average GPA and count of valid grades for a section.
+
+    Args:
+        section_df (DataFrame): Must contain a 'Grade' column.
+
+    Returns:
+        tuple:
+            mean_gpa (float): Average GPA of the section.
+            count (int): Number of valid grades.
+    """
     if section_df.empty:
         return 0, 0
     
@@ -72,7 +123,17 @@ def calculate_section_stats(section_df):
     return mean_gpa, len(gpas)
 
 def calculate_group_stats(section_dfs):
-    """Calculate group-level GPA statistics."""
+    """
+    Aggregate GPA data across sections to compute group statistics.
+
+    Args:
+        section_dfs (list of DataFrame): Each with a 'Grade' column.
+
+    Returns:
+        tuple:
+            mean (float): Group mean GPA.
+            std_dev (float): Group standard deviation.
+    """
     all_gpas = []
     
     for df in section_dfs:
@@ -94,8 +155,17 @@ def calculate_group_stats(section_dfs):
 
 def analyze_sections(run_file, grp_files, sec_files, threshold=2.0):
     """
-    Analyze sections using z-scores.
-    Z-scores of ≤-2 or ≥2 are considered significant by default.
+    Load section files, compute Z-scores, and return analysis.
+
+    Args:
+        run_file (str): Path to this script (used to locate Sections folder).
+        grp_files (list of str): Group‐level data files (currently unused).
+        sec_files (list of str): Section filenames to analyze.
+        threshold (float): Z-score threshold for significance (default 2.0).
+
+    Returns:
+        results (list of dict): Analysis per section, ready for JSON.
+        DataFrame: Pandas DataFrame of results.
     """
     from FileReader import fileReader
     
@@ -132,12 +202,12 @@ def analyze_sections(run_file, grp_files, sec_files, threshold=2.0):
             
             results.append({
                 'section': sec_name,
-                'section_gpa': round(sec_mean, 2),
+                'section_gpa': round(sec_mean, 3),
                 'section_count': sec_count,
-                'group_gpa': round(group_mean, 2),
-                'group_std': round(group_std, 2),
-                'z_score': round(z_score, 2),
-                'p_value': round(p_value, 4),
+                'group_gpa': round(group_mean, 3),
+                'group_std': round(group_std, 3),
+                'z_score': round(z_score, 3),
+                'p_value': round(p_value, 5),
                 'significant': significant,
                 'performance': 'Above Average' if z_score > 0 else 'Below Average' if z_score < 0 else 'Average'
             })
@@ -145,10 +215,10 @@ def analyze_sections(run_file, grp_files, sec_files, threshold=2.0):
             # Handle division by zero
             results.append({
                 'section': sec_name,
-                'section_gpa': round(sec_mean, 2),
+                'section_gpa': round(sec_mean, 3),
                 'section_count': sec_count,
-                'group_gpa': round(group_mean, 2),
-                'group_std': round(group_std, 2),
+                'group_gpa': round(group_mean, 3),
+                'group_std': round(group_std, 3),
                 'z_score': 'N/A',
                 'p_value': 'N/A',
                 'significant': False,
