@@ -179,7 +179,8 @@ def main():
             print("2. Export bottom performers")
             print("3. Export SEC file data")
             print("4. Export Z-score analysis") # Added new export option
-            export_choice = input("Select data to export (1-4): ") # Updated prompt
+            print("5. Cancel Export")
+            export_choice = input("Select data to export (1-5): ") # Updated prompt
             
             if export_choice == '1':
                 if top_performers is None:
@@ -201,6 +202,9 @@ def main():
                     print("Error: Please perform Z-score analysis first (option 8)!")
                     continue
                 export_to_html(zscore_results, "zscore_analysis")
+            elif export_choice == '5':
+                print("Export cancelled.")
+                continue
             else:
                 print("Invalid export option!")
         
