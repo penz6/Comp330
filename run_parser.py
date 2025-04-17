@@ -2,6 +2,15 @@ import os
 
 #run parser
 def runReader(runFile):
+    """
+    Parses a run file to extract section filenames.
+
+    args:
+        runFile (str): Path to the run file.
+
+    Returns:
+        list of str: List of section filenames extracted from the run file.
+    """
     #inital zero
     lines = []
     #Get base directory and construct groups path using proper OS path functions

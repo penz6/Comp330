@@ -1,11 +1,43 @@
+"""
+Module to generate DataFrames of high- and low-performing students
+aggregated across all course sections.
+
+Provides:
+  - Lists.goodList: returns students earning "A" or "A-"
+  - Lists.badList: returns students earning "F" or "D-"
+"""
+
 from run_parser import runReader
 from grp_parser import grpReader
 from FileReader import fileReader
 import pandas as pd
 
 class Lists:
-    #good list
+    """
+    Utility filters to extract subsets of student records by performance.
+
+    Methods:
+        goodList(runFile): DataFrame of top-performing students.
+        badList(runFile): DataFrame of bottom-performing students.
+    """
+
     def goodList(runFile):
+        """
+        Collect and return students with top grades ("A", "A-").
+
+        Workflow:
+          1. Parse run file to get group identifiers.
+          2. Determine section filenames via grpReader.
+          3. Bulk read section DataFrames with fileReader.
+          4. Filter rows where Grade is "A" or "A-".
+          5. Concatenate and return the result.
+
+        Args:
+            runFile (str): Path to the run file defining group/sections.
+
+        Returns:
+            pandas.DataFrame: Combined records of students earning "A" or "A-".
+        """
         grpList = runReader(runFile)
         #strip the run filepath and append group
         #get all the sec files
@@ -21,6 +53,22 @@ class Lists:
             
 
     def badList(runFile):
+        """
+        Collect and return students with bottom grades ("F", "D-").
+
+        Workflow:
+          1. Parse run file to get group identifiers.
+          2. Determine section filenames via grpReader.
+          3. Bulk read section DataFrames with fileReader.
+          4. Filter rows where Grade is "F" or "D-".
+          5. Concatenate and return the result.
+
+        Args:
+            runFile (str): Path to the run file defining group/sections.
+
+        Returns:
+            pandas.DataFrame: Combined records of students earning "F" or "D-".
+        """
         grpList = runReader(runFile)
         #strip the run filepath and append group
         #get all the sec files
