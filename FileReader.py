@@ -9,8 +9,8 @@ class fileReader:
     def readSEC(name):
         #define data
         data = {
-        'FName': [],
-        'LName': [],
+        'FirstName': [],
+        'LastName': [],
         'ID': [],
         'Grade': []
         }

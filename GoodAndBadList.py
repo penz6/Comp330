@@ -17,6 +17,7 @@ class Lists:
         for dataframe in dataList:
             filtered_df = dataframe[dataframe["Grade"].isin(["A", "A-"])].copy()
             goodListDF = pd.concat([goodListDF, filtered_df], ignore_index=True)
+            goodListDF = goodListDF.drop_duplicates()
         return(goodListDF)
             
 
@@ -30,6 +31,7 @@ class Lists:
         #get the better list
         badListDF = pd.DataFrame()
         for dataframe in dataList:
-            filtered_df = dataframe[dataframe["Grade"].isin(["F", "D-"])].copy()
+            filtered_df = dataframe[dataframe["Grade"].isin(["F", "D-","D","D+"])].copy()
             badListDF = pd.concat([badListDF, filtered_df], ignore_index=True)
+            badListDF = badListDF.drop_duplicates()
         return(badListDF)

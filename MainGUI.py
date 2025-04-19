@@ -50,7 +50,7 @@ class gradeGUI(tk.Tk):
         #resize
         self.exportbuttonicon = self.exportbuttonicon.subsample(3,3)
         #get all of the page layouts
-        for F in (HomePage,DashBoard,SearchStudents,BottomPerformers,TopPerformers):
+        for F in (HomePage,DashBoard,SectionAverage,BottomPerformers,TopPerformers):
             frame = F(container,self)
             self.frames[F] = frame
             #pack the frame
@@ -64,7 +64,7 @@ class gradeGUI(tk.Tk):
         for frame in self.frames.values():
             frame.pack_forget()
         #if need to load data
-        if cont in (TopPerformers, BottomPerformers, SearchStudents):
+        if cont in (TopPerformers, BottomPerformers, SectionAverage):
             self.frames[cont].load_data()
 
         #now pack frame
@@ -112,22 +112,23 @@ class DashBoard(tk.Frame):
         dashboardlabel= tk.Label(self,text="Here Is Your Dashboard", font=bigfont,padx=20,pady=30)
         dashboardlabel.pack()
         #buttons to go to different tabs
-        lowestperformersbutton = tk.ttk.Button(self,text="See Lowester Performers",command=lambda:controller.show_frame(BottomPerformers),style="TButton")
-        topperformersbutton = tk.ttk.Button(self,text="See Top Performers",command=lambda:controller.show_frame(TopPerformers),style="TButton")
-        searchstudentsbutton = tk.ttk.Button(self,text="See your group breakdown",command=lambda:controller.show_frame(SearchStudents),style="TButton")
+        lowestperformersbutton = tk.ttk.Button(self,text="See Work List",command=lambda:controller.show_frame(BottomPerformers),style="TButton")
+        topperformersbutton = tk.ttk.Button(self,text="See Good List",command=lambda:controller.show_frame(TopPerformers),style="TButton")
+        sectionaveragebutton = tk.ttk.Button(self,text="See Section Averages",command=lambda:controller.show_frame(SectionAverage),style="TButton")
         #pack the buttons
         lowestperformersbutton.pack(padx=10, pady=10)
         topperformersbutton.pack(padx=10, pady=10)
-        searchstudentsbutton.pack(padx=10, pady=10)
+        sectionaveragebutton.pack(padx=10, pady=10)
 
 
 #search students
-class SearchStudents(tk.Frame):
+class SectionAverage(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
         #pack the home button
         homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.TOP,anchor=tk.NW)
+        
         
 
 #top performers
@@ -141,7 +142,7 @@ class TopPerformers(tk.Frame):
         homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.LEFT)
         #export button
-        self.df = TableModel.getSampleData() # Initialize with sample data
+        # Initialize with sample data
         exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.df))
         exportbutton.pack(side=tk.LEFT)
         #display the data frame
@@ -167,7 +168,7 @@ class TopPerformers(tk.Frame):
         config.apply_options(options, self.table)
         self.table.autoResizeColumns()
         self.table.setRowHeight(50)
-        self.table.show()
+        self.table.show() 
 
 
 #bottom performers
@@ -181,8 +182,7 @@ class BottomPerformers(tk.Frame):
         homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.LEFT)
         #export button
-        df = TableModel.getSampleData()
-        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(df))
+        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.df))
         exportbutton.pack(side=tk.LEFT)
         # create a container
         self.table_frame = tk.Frame(self)
