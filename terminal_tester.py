@@ -3,6 +3,7 @@
 
 import os
 import sys
+from pathlib import Path
 from run_parser import runReader
 from grp_parser import grpReader
 from FileReader import fileReader
@@ -12,6 +13,11 @@ from zscore_calculator import analyze_sections
 
 class TerminalTester:
     def __init__(self):
+        """
+        Initialize the TerminalTester class with default attributes for file paths,
+        dataframes, and handlers for menu options. This sets up the internal state
+        for managing loaded files, analysis results, and user interactions.
+        """
         self.run_file = None
         self.grp_files = None
         self.sec_files = None
@@ -33,7 +39,14 @@ class TerminalTester:
 
 
     def display_menu(self):
-        """Display the main menu options to the user."""
+        """
+        Display the main menu to the user, outlining all available options for
+        interacting with the grade analysis tool. Prompts the user to select an
+        option and returns their input for further processing.
+
+        Returns:
+            str: The user's menu selection as a string.
+        """
         print("\n" + "="*50)
         print("PGUA^2 Grade Analyzer - Terminal Tester")
         print("="*50)
@@ -50,26 +63,46 @@ class TerminalTester:
         return input("Select an option (1-9): ")
 
 
-    def find_run_files(self, base_dir="C:\\Users\\Alex\\Desktop\\CLASS - CODE\\Comp330\\COMSC330_POC_Data"):
-        """Find all RUN files in the base directory and its subdirectories."""
+    def find_run_files(self, base_dir=None):
+        """
+        Search for all '.run' files within the specified base directory and its
+        subdirectories. If no directory is provided, defaults to the 'COMSC330_POC_Data'
+        folder relative to the script location.
+
+        Args:
+            base_dir (str or Path, optional): The directory to search for RUN files.
+
+        Returns:
+            list: A list of absolute file paths to found RUN files.
+        """
+        if base_dir is None:
+            # Default to a directory relative to the script location
+            base_dir = Path(__file__).parent / "COMSC330_POC_Data"
+        else:
+            base_dir = Path(base_dir)
+
         run_files = []
-        
-        # Check if the base directory exists
-        if not os.path.exists(base_dir):
+        if not base_dir.exists():
             print(f"Warning: Base directory '{base_dir}' does not exist.")
             return run_files
-        
-        # Walk through the directory tree and find .RUN files
-        for root, dirs, files in os.walk(base_dir):
-            for file in files:
-                if file.lower().endswith('.run'):
-                    run_files.append(os.path.join(root, file))
-        
+
+        for file in base_dir.rglob("*.run"):
+            run_files.append(str(file.resolve()))
+
         return run_files
 
 
     def export_to_html(self, df, file_type):
-        """Export a dataframe to HTML file."""
+        """
+        Export the provided pandas DataFrame to an HTML file. The filename is
+        determined by the file_type argument. Notifies the user of the export
+        location or if there is no data to export.
+
+        Args:
+            df (pd.DataFrame): The DataFrame to export.
+            file_type (str): A descriptor for the type of data being exported,
+                             used in the output filename.
+        """
         if df is None or df.empty:
             print("No data to export!")
             return
@@ -80,7 +113,11 @@ class TerminalTester:
 
 
     def load_run(self):
-        """Load a RUN file."""
+        """
+        Prompt the user to select or provide the path to a RUN file. Lists all
+        available RUN files found in the data directory, or allows for manual
+        entry of a custom path. Updates the internal state with the selected file.
+        """
         available_runs = self.find_run_files()
         
         if not available_runs:
@@ -117,7 +154,11 @@ class TerminalTester:
 
 
     def display_groups(self):
-        """Display groups from the loaded RUN file."""
+        """
+        Display all group files associated with the currently loaded RUN file.
+        Requires that a RUN file has been loaded. Lists each group file found,
+        or notifies the user if an error occurs.
+        """
         if not self.run_file:
             print("Error: Please load a RUN file first (option 1)!")
             return
@@ -132,7 +173,11 @@ class TerminalTester:
 
 
     def display_sections(self):
-        """Display sections from the loaded groups."""
+        """
+        Display all section files associated with the loaded group files.
+        Requires that group files have been loaded. Lists each section file found,
+        or notifies the user if an error occurs.
+        """
         if not self.grp_files:
             print("Error: Please load groups first (option 2)!")
             return
@@ -147,7 +192,11 @@ class TerminalTester:
 
 
     def display_top_performers(self):
-        """Display top performers (A, A-) from the loaded RUN file."""
+        """
+        Display a list of top-performing students (grades A and A-) from the
+        loaded RUN file. Requires that a RUN file has been loaded. Shows the
+        results in a formatted table or notifies the user if no data is found.
+        """
         if not self.run_file:
             print("Error: Please load a RUN file first (option 1)!")
             return
@@ -168,7 +217,11 @@ class TerminalTester:
 
 
     def display_bottom_performers(self):
-        """Display bottom performers (F, D-) from the loaded RUN file."""
+        """
+        Display a list of bottom-performing students (grades F and D-) from the
+        loaded RUN file. Requires that a RUN file has been loaded. Shows the
+        results in a formatted table or notifies the user if no data is found.
+        """
         if not self.run_file:
             print("Error: Please load a RUN file first (option 1)!")
             return
@@ -189,7 +242,12 @@ class TerminalTester:
 
 
     def export_data(self):
-        """Export data to HTML files."""
+        """
+        Present export options to the user for saving various data sets to HTML files.
+        Allows exporting of top performers, bottom performers, SEC file data, or
+        Z-score analysis results. Handles user selection and validates that the
+        relevant data has been loaded before exporting.
+        """
         print("\nExport options:")
         print("1. Export top performers")
         print("2. Export bottom performers")
@@ -226,7 +284,12 @@ class TerminalTester:
 
 
     def read_sec_file(self):
-        """Read an individual SEC file and display its data."""
+        """
+        Prompt the user to select or provide the path to a SEC file. Lists all
+        available SEC files found in the data directory, or allows for manual
+        entry of a custom path. Reads and displays the SEC file data in a table,
+        or notifies the user if no data is found.
+        """
         data_dir = "COMSC330_POC_Data"
         sec_files_found = []
         
@@ -273,7 +336,13 @@ class TerminalTester:
 
 
     def perform_zscore(self):
-        """Perform Z-score analysis on the loaded data."""
+        """
+        Perform Z-score statistical analysis on the loaded section data. Prompts
+        the user for a significance threshold, runs the analysis, and displays
+        a summary of results including group GPA, standard deviation, and
+        section-level Z-scores and significance. Requires that RUN, group, and
+        section files have been loaded.
+        """
         if not self.run_file:
             print("Error: Please load a RUN file first (option 1)!")
             return
@@ -325,15 +394,28 @@ class TerminalTester:
 
 
     def exit_program(self):
+        """
+        Exit the program gracefully, displaying a goodbye message and terminating
+        the script execution.
+        """
         print("Exiting program. Goodbye!")
         sys.exit(0)
 
 
     def invalid_option(self):
+        """
+        Notify the user that an invalid menu option was selected and prompt them
+        to choose a valid option.
+        """
         print("Invalid option! Please select a number between 1 and 9.")
 
 
     def run(self):
+        """
+        Main loop for the terminal tester. Continuously displays the menu,
+        processes user input, and invokes the appropriate handler for each
+        selected option until the user chooses to exit.
+        """
         while True:
             choice = self.display_menu()
             handler = self.handlers.get(choice, self.invalid_option)

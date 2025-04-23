@@ -44,3 +44,59 @@ else:
 
 # Save to CSV
 updated_work.to_csv(work_file, index=False)
+
+
+"""
+Nice work!
+
+To use this code outside of this file we should try to make it a function.
+
+
+import pandas as pd
+import os
+
+class HistoryManager:
+    ##### Constructor #####
+    def __init__(self, good_file="good_list.csv", work_file="work_list.csv"):
+        self.good_file = good_file
+        self.work_file = work_file
+
+    
+    ##### Update List #####
+    def update_list(self, new_data, file_path):
+        `Update a CSV file with new data, avoiding duplicates by 'id'.`
+        already_on_list = []
+        if os.path.exists(file_path):
+            existing = pd.read_csv(file_path)
+            new_entries = new_data[~new_data['id'].isin(existing['id'])]
+            already_on_list = new_data[new_data['id'].isin(existing['id'])]['id'].tolist()
+            updated = pd.concat([existing, new_entries], ignore_index=True)
+        else:
+            updated = new_data
+            print(f"🆕 Creating new file: {file_path}")
+        updated.to_csv(file_path, index=False)
+        return updated, already_on_list
+
+    ##### Update Good List (using update_list) #####
+    def update_good_list(self, good_list):
+        return self.update_list(good_list, self.good_file)
+
+    ##### Update Work List (using update_list) #####
+    def update_work_list(self, work_list):
+        return self.update_list(work_list, self.work_file)
+
+
+        
+------------- Example Usage -------------
+
+# elsewhere in the code
+from History import HistoryManager
+
+# Assume good_list and work_list are pandas DataFrames with at least an 'id' column
+hm = HistoryManager()
+updated_good, dup_good = hm.update_good_list(good_list)
+updated_work, dup_work = hm.update_work_list(work_list)
+
+
+Keep crushing! 
+"""
