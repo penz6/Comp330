@@ -211,3 +211,31 @@ class BottomPerformers(tk.Frame):
 
 #run gui
 gradeGUI().mainloop()
+
+
+
+"""
+# Suggestions
+
+1. Organize code by separating GUI logic from data processing.
+   - Move data loading and exporting functions into a separate module.
+ 
+2. Avoid global variables where possible.
+   - Store shared state (like the selected file path) as attributes of the main GUI class.
+
+3. Reduce code duplication.
+   - If multiple classes share similar methods (like load_data), create a base class or utility function.
+
+4. Add docstrings to all classes and methods.
+   - This helps everyone (and your future self) understand what each part does.
+
+5. Use context managers for file operations.
+   - Example: with open(filename, 'w') as f: ...
+
+6. Follow Python naming conventions.
+   - Class names: CamelCase (e.g., GradeGUI)
+   - Method and variable names: snake_case (e.g., load_data)
+
+Good work so far! Keep crushing it!
+
+"""
