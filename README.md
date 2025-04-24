@@ -54,12 +54,12 @@ The GPA Analysis Tool is designed to process academic data files (`.SEC`, `.GRP`
 | 2     | Grade Count Display           | Started      | CLI shows distribution; GUI needs a clear per-section grade breakdown.                                                |
 | 3     | Group Sections                | Done         | Parsers (`run_parser.py`, `grp_parser.py`) correctly group sections.                                                  |
 | 4     | Section Comparison            | Done         | Z-score logic compares section GPA to group average.                                                                  |
-| 5     | Section Significance – Z-test | Done         | `is_significant` uses |z| >= 2.0; GUIs allow p<0.05 threshold.                                                             |
+| 5     | Section Significance – Z-test | Started         | `is_significant` uses |z| >= 2.0;  threshold.                                                             |
 | 6     | Group Significance – Z-test   | Not Started  | No implementation for comparing group means against overall run GPA.                                                  |
 | 7     | Good List                     | Done         | `GoodAndBadList.py` and CLI/GUI functions identify A/A– students.                                                     |
 | 8     | Work List                     | Done         | `GoodAndBadList.py` and CLI/GUI functions identify D+/D–/F students.                                                  |
-| 9     | Save Lists                    | Done         | `History.py` saves lists to CSV; persistence tested in `test_persistence.py`.                                         |
-| 10    | History – Appeared Before     | Done         | CSV history and DB schema allow querying past appearances.                                                            |
+| 9     | Save Lists                    | Started         | `History.py` saves lists to CSV; persistence tested in `test_persistence.py`.                                         |
+| 10    | History – Appeared Before     | Started         | CSV history and DB schema allow setup possibilities.                                                            |
 | 11    | Comprehensive Report          | Started      | `report_generator.py` and GUIs cover most content; need one unified document output.                                  |
 | 12    | Grade Handling Rules          | Done         | GPA logic excludes I/W/P/NP and includes F as zero.                                                                   |
 | 13    | File Parsing                  | Done         | Parsers handle `.SEC`, `.GRP`, and `.RUN` as specified.                                                               |
