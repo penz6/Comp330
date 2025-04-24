@@ -1,70 +1,52 @@
 import pandas as pd
 import os
 
-# File paths
-good_file = "good_list.csv"
-work_file = "work_list.csv"
-
-# Sample DataFrames — use your real ones with at least an 'id' column
-# good_list = pd.DataFrame([{"id": 101, "name": "Alice", "grade": 90}, {"id": 102, "name": "Bob", "grade": 85}])
-# work_list = pd.DataFrame([{"id": 103, "name": "Diana", "grade": 60}, {"id": 104, "name": "Charlie", "grade": 65}])
-
-# Lists to track duplicates
-already_on_good_list = []
-already_on_work_list = []
-
-# ------------- GOOD LIST -------------
-if os.path.exists(good_file):
-    # Load existing CSV
-    existing_good = pd.read_csv(good_file)
-
-    # Filter: keep only new students based on 'id'
-    new_good = good_list[~good_list['id'].isin(existing_good['id'])]
-    already_on_good_list = good_list[good_list['id'].isin(existing_good['id'])]['id'].tolist()
-
-    # Combine and overwrite file
-    updated_good = pd.concat([existing_good, new_good], ignore_index=True)
-else:
-    # File doesn't exist — use new data
-    updated_good = good_list
-    print(f"🆕 Creating new file: {good_file}")
-
-# Save to CSV
-updated_good.to_csv(good_file, index=False)
-
-# ------------- WORK LIST -------------
-if os.path.exists(work_file):
-    existing_work = pd.read_csv(work_file)
-    new_work = work_list[~work_list['id'].isin(existing_work['id'])]
-    already_on_work_list = work_list[work_list['id'].isin(existing_work['id'])]['id'].tolist()
-    updated_work = pd.concat([existing_work, new_work], ignore_index=True)
-else:
-    updated_work = work_list
-    print(f"🆕 Creating new file: {work_file}")
-
-# Save to CSV
-updated_work.to_csv(work_file, index=False)
-
-
-"""
-Nice work!
-
-To use this code outside of this file we should try to make it a function.
-
-
-import pandas as pd
-import os
-
 class HistoryManager:
-    ##### Constructor #####
-    def __init__(self, good_file="good_list.csv", work_file="work_list.csv"):
-        self.good_file = good_file
-        self.work_file = work_file
+    """
+    Manages the persistence of student lists across program runs.
 
-    
-    ##### Update List #####
+    Tracks students who appear on:
+      - Good List: students with A/A- grades.
+      - Work List: students with D+/D/D-/F grades.
+
+    Lists are stored as CSV files in a dedicated folder. Provides methods to update, retrieve,
+    and check student history in these lists.
+    """
+
+    def __init__(self, good_file="good_list.csv", work_file="work_list.csv"):
+        """
+        Initialize the HistoryManager with file paths for good and work lists.
+
+        Args:
+            good_file (str): Filename for the Good List CSV (default: "good_list.csv").
+            work_file (str): Filename for the Work List CSV (default: "work_list.csv").
+
+        Side Effects:
+            Creates the storage folder if it does not exist.
+            Sets up file paths for list storage.
+        """
+        self.folder = "historical_lists"
+        os.makedirs(self.folder, exist_ok=True)
+        self.good_file = os.path.join(self.folder, good_file)
+        self.work_file = os.path.join(self.folder, work_file)
+
     def update_list(self, new_data, file_path):
-        `Update a CSV file with new data, avoiding duplicates by 'id'.`
+        """
+        Update a CSV file with new student data, avoiding duplicates by student ID.
+
+        Args:
+            new_data (pd.DataFrame): DataFrame containing new student records. Must include an 'id' column.
+            file_path (str): Path to the CSV file to update.
+
+        Returns:
+            tuple:
+                - updated_dataframe (pd.DataFrame): The DataFrame after merging new and existing data.
+                - list_of_duplicate_ids (list): List of student IDs from new_data that were already present in the file.
+
+        Side Effects:
+            Writes the updated DataFrame to the specified CSV file.
+            Creates the file if it does not exist.
+        """
         already_on_list = []
         if os.path.exists(file_path):
             existing = pd.read_csv(file_path)
@@ -77,26 +59,93 @@ class HistoryManager:
         updated.to_csv(file_path, index=False)
         return updated, already_on_list
 
-    ##### Update Good List (using update_list) #####
     def update_good_list(self, good_list):
+        """
+        Update the Good List CSV with new student data.
+
+        Args:
+            good_list (pd.DataFrame): DataFrame of students to add to the Good List. Must include an 'id' column.
+
+        Returns:
+            tuple:
+                - updated_dataframe (pd.DataFrame): The Good List after update.
+                - list_of_duplicate_ids (list): IDs from good_list already present in the Good List.
+
+        Side Effects:
+            Writes to the Good List CSV file.
+        """
         return self.update_list(good_list, self.good_file)
 
-    ##### Update Work List (using update_list) #####
     def update_work_list(self, work_list):
+        """
+        Update the Work List CSV with new student data.
+
+        Args:
+            work_list (pd.DataFrame): DataFrame of students to add to the Work List. Must include an 'id' column.
+
+        Returns:
+            tuple:
+                - updated_dataframe (pd.DataFrame): The Work List after update.
+                - list_of_duplicate_ids (list): IDs from work_list already present in the Work List.
+
+        Side Effects:
+            Writes to the Work List CSV file.
+        """
         return self.update_list(work_list, self.work_file)
 
+    def get_good_list(self):
+        """
+        Retrieve the current Good List from CSV.
 
-        
-------------- Example Usage -------------
+        Returns:
+            pd.DataFrame: DataFrame containing the Good List.
+                - If the file does not exist, returns an empty DataFrame.
 
-# elsewhere in the code
-from History import HistoryManager
+        Side Effects:
+            Reads from the Good List CSV file if it exists.
+        """
+        if os.path.exists(self.good_file):
+            return pd.read_csv(self.good_file)
+        return pd.DataFrame()
 
-# Assume good_list and work_list are pandas DataFrames with at least an 'id' column
-hm = HistoryManager()
-updated_good, dup_good = hm.update_good_list(good_list)
-updated_work, dup_work = hm.update_work_list(work_list)
+    def get_work_list(self):
+        """
+        Retrieve the current Work List from CSV.
 
+        Returns:
+            pd.DataFrame: DataFrame containing the Work List.
+                - If the file does not exist, returns an empty DataFrame.
 
-Keep crushing! 
-"""
+        Side Effects:
+            Reads from the Work List CSV file if it exists.
+        """
+        if os.path.exists(self.work_file):
+            return pd.read_csv(self.work_file)
+        return pd.DataFrame()
+
+    def check_student_history(self, student_id):
+        """
+        Check if a student has previously appeared on the Good or Work Lists.
+
+        Args:
+            student_id: The student ID to check (should match the type used in the 'id' column).
+
+        Returns:
+            dict: Dictionary with keys:
+                - 'good_list' (bool): True if student_id is in the Good List, else False.
+                - 'work_list' (bool): True if student_id is in the Work List, else False.
+
+        Side Effects:
+            Reads from the Good and Work List CSV files if they exist.
+        """
+        history = {
+            'good_list': False,
+            'work_list': False
+        }
+        if os.path.exists(self.good_file):
+            good_list = pd.read_csv(self.good_file)
+            history['good_list'] = student_id in good_list['id'].values
+        if os.path.exists(self.work_file):
+            work_list = pd.read_csv(self.work_file)
+            history['work_list'] = student_id in work_list['id'].values
+        return history
