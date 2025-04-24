@@ -38,6 +38,7 @@ class TerminalTester:
             '7': self.read_sec_file,
             '8': self.perform_zscore,
             '9': self.manage_history,  # Add new handler for history management
+            '10': self.auto_process,   # New handler for auto-processing
             '0': self.exit_program     # Changed from 9 to 0 to accommodate new option
         }
 
@@ -62,10 +63,11 @@ class TerminalTester:
         print("6. Export data to HTML")
         print("7. Read individual SEC file")
         print("8. Perform Z-score analysis")
-        print("9. Manage student history")  # New option
-        print("0. Exit")  # Changed from 9 to 0
+        print("9. Manage student history")
+        print("10. Auto-Process full pipeline")  # New option
+        print("0. Exit")
         print("="*50)
-        return input("Select an option (0-9): ")  # Updated range
+        return input("Select an option (0-10): ")  # Updated range
 
 
     def find_run_files(self, base_dir=None):
@@ -490,8 +492,145 @@ class TerminalTester:
         Notify the user that an invalid menu option was selected and prompt them
         to choose a valid option.
         """
-        print("Invalid option! Please select a number between 1 and 9.")
+        print("Invalid option! Please select a number between 0 and 10.")  # Updated range
 
+
+    def auto_process(self):
+        """
+        Run the entire data processing pipeline in sequence:
+        1) Prompt user for RUN file path or list + pick
+        2) Load groups
+        3) Load sections
+        4) Compute/display top performers
+        5) Compute/display bottom performers
+        6) Read first SEC file in data directory
+        7) Perform Z-score analysis (default threshold)
+        
+        This method automates the steps that would otherwise require multiple
+        menu selections and confirmations.
+        """
+        print("\n" + "="*50)
+        print("Auto-Processing Pipeline")
+        print("="*50)
+        
+        try:
+            # 1. Load RUN file
+            print("[1/7] Searching for RUN files...")
+            available_runs = self.find_run_files()
+            
+            if not available_runs:
+                print("No RUN files found in the data directory!")
+                custom_path = input("Would you like to enter a custom path? (y/n): ")
+                if custom_path.lower() == 'y':
+                    file_path = input("Enter the path to your .RUN file: ")
+                    if not file_path.lower().endswith('.run'):
+                        print("Error: Please provide a valid .RUN file!")
+                        return
+                    self.run_file = file_path
+                else:
+                    print("Auto-process cancelled: No RUN file selected.")
+                    return
+            else:
+                print("\nAvailable RUN files:")
+                for i, run in enumerate(available_runs, 1):
+                    print(f"{i}. {os.path.basename(run)} ({run})")
+                selection = input("\nSelect a file number or enter a custom path: ")
+                if selection.isdigit() and 1 <= int(selection) <= len(available_runs):
+                    self.run_file = available_runs[int(selection) - 1]
+                else:
+                    if not selection.lower().endswith('.run'):
+                        print("Error: Please provide a valid .RUN file!")
+                        return
+                    self.run_file = selection
+            print(f"Successfully loaded RUN file: {self.run_file}")
+
+            # 2. Load groups
+            print("[2/7] Loading groups...")
+            self.grp_files = runReader(self.run_file)
+            print(f"Loaded {len(self.grp_files)} group files.")
+
+            # 3. Load sections
+            print("[3/7] Loading sections...")
+            self.sec_files = grpReader(self.run_file, self.grp_files)
+            print(f"Loaded {len(self.sec_files)} section files.")
+
+            # 4. Process top performers
+            print("[4/7] Processing top performers (A, A-)...")
+            self.top_performers = Lists.goodList(self.run_file)
+            if self.top_performers.empty:
+                print("No top performers found!")
+            else:
+                print(f"Top performers: {len(self.top_performers)} students")
+                # Ensure 'id' column exists for update_good_list
+                if 'id' not in self.top_performers.columns:
+                    # Try to find a likely column (case-insensitive)
+                    id_col = next((col for col in self.top_performers.columns if col.lower() == 'id'), None)
+                    if id_col:
+                        self.top_performers = self.top_performers.rename(columns={id_col: 'id'})
+                if 'id' not in self.top_performers.columns:
+                    print("Error: Top performers data missing 'id' column. Skipping Good List update.")
+                else:
+                    updated_df, already_on_list = self.history.update_good_list(self.top_performers)
+                    print(f"Good List updated: {len(self.top_performers) - len(already_on_list)} new, {len(already_on_list)} already on list")
+
+            # 5. Process bottom performers
+            print("[5/7] Processing bottom performers (F, D-)...")
+            self.bottom_performers = Lists.badList(self.run_file)
+            if self.bottom_performers.empty:
+                print("No bottom performers found!")
+            else:
+                print(f"Bottom performers: {len(self.bottom_performers)} students")
+                # Ensure 'id' column exists for update_work_list
+                if 'id' not in self.bottom_performers.columns:
+                    id_col = next((col for col in self.bottom_performers.columns if col.lower() == 'id'), None)
+                    if id_col:
+                        self.bottom_performers = self.bottom_performers.rename(columns={id_col: 'id'})
+                if 'id' not in self.bottom_performers.columns:
+                    print("Error: Bottom performers data missing 'id' column. Skipping Work List update.")
+                else:
+                    updated_df, already_on_list = self.history.update_work_list(self.bottom_performers)
+                    print(f"Work List updated: {len(self.bottom_performers) - len(already_on_list)} new, {len(already_on_list)} already on list")
+
+            # 6. Read first SEC file
+            print("[6/7] Loading SEC file data...")
+            data_dir = "COMSC330_POC_Data"
+            sec_files_found = []
+            for root, dirs, files in os.walk(data_dir):
+                for file in files:
+                    if file.lower().endswith('.sec'):
+                        sec_files_found.append(os.path.join(root, file))
+            if not sec_files_found:
+                print("No SEC files found in the data directory. Skipping SEC file processing.")
+            else:
+                file_path = sec_files_found[0]
+                print(f"Reading SEC file: {file_path}")
+                self.sec_data = fileReader.readSEC(file_path)
+                if self.sec_data.empty:
+                    print("No data found in the SEC file!")
+                else:
+                    print(f"SEC data loaded: {len(self.sec_data)} rows")
+
+            # 7. Perform Z-score analysis
+            print("[7/7] Performing Z-score analysis...")
+            if not self.run_file or not self.grp_files or not self.sec_files:
+                print("Missing required data for Z-score analysis. Skipping.")
+            else:
+                threshold = 1.96
+                result_data, self.zscore_results = analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
+                if not result_data:
+                    print("No Z-score results found!")
+                else:
+                    print(f"Z-score analysis completed: {len(result_data)} sections analyzed")
+                    print(f"Group GPA: {result_data[0]['group_gpa']}")
+                    print(f"Group Std Dev: {result_data[0]['group_std']}")
+
+            print("\n" + "="*50)
+            print("Auto-Processing Complete!")
+            print("="*50)
+
+        except Exception as e:
+            print(f"Auto-processing error: {e}")
+            print("Auto-processing pipeline aborted.")
 
     def run(self):
         """
