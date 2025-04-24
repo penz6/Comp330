@@ -1,7 +1,6 @@
 # import
 import os
 import tkinter as tk
-from PIL import ImageTk, Image
 import sv_ttk as sv
 from pandastable import Table, TableModel, config
 from tkinter import filedialog
