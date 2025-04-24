@@ -6,6 +6,7 @@ import sv_ttk as sv
 from pandastable import Table, TableModel, config
 from tkinter import filedialog
 from GoodAndBadList import Lists
+import run_parser
 #global vars
 filepath = ""
 options = config.load_options()
@@ -125,10 +126,32 @@ class DashBoard(tk.Frame):
 class SectionAverage(tk.Frame):
     def __init__(self,parent,controller):
         tk.Frame.__init__(self,parent)
+        button_frame = tk.Frame(self)
+        button_frame.pack(side=tk.TOP, fill=tk.X)
         #pack the home button
-        homebutton = tk.ttk.Button(self, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
-        homebutton.pack(side=tk.TOP,anchor=tk.NW)
-        
+        homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton.pack(side=tk.LEFT)
+        #export button
+        # Initialize with sample data
+        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.table))
+        exportbutton.pack(side=tk.LEFT)
+    def load_data(self):
+        global filepath
+        #button frame
+        button_list_frame = tk.Frame(self)
+        button_list_frame.pack(pady=20)
+        for i in run_parser.runReader(filepath):
+            #add the button
+            groupbutton = tk.ttk.Button(button_list_frame,text=os.path.basename(i),command=lambda: self.loadtable())
+            groupbutton.pack(side=tk.LEFT)
+    #load the table
+    def loadtable(self,groupdf):
+        #create the new table
+        self.table = Table(self.table_frame, dataframe=groupdf, showtoolbar=False, showstatusbar=False, editable=False, config=options)
+        config.apply_options(options, self.table)
+        self.table.autoResizeColumns()
+        self.table.setRowHeight(50)
+        self.table.show() 
         
 
 #top performers

@@ -11,33 +11,6 @@ def runReader(runFile):
     Returns:
         list of str: List of section filenames extracted from the run file.
     """
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     #inital zero
