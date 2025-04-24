@@ -43,13 +43,6 @@ class gradeGUI(tk.Tk):
         style.configure("TButton", font=buttonfont,padding=(10, 20))
         #new empty frames
         self.frames = {}
-        #new icon for home button
-        self.homebuttonicon = tk.PhotoImage(file = r"home.png")
-        #resize
-        self.homebuttonicon = self.homebuttonicon.subsample(3,3)
-        self.exportbuttonicon = tk.PhotoImage(file = r"export.png")
-        #resize
-        self.exportbuttonicon = self.exportbuttonicon.subsample(3,3)
         #get all of the page layouts
         for F in (HomePage,DashBoard,SectionAverage,BottomPerformers,TopPerformers):
             frame = F(container,self)
@@ -129,20 +122,25 @@ class SectionAverage(tk.Frame):
         button_frame = tk.Frame(self)
         button_frame.pack(side=tk.TOP, fill=tk.X)
         #pack the home button
-        homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton = tk.ttk.Button(button_frame, text="Home", command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.LEFT)
         #export button
         # Initialize with sample data
-        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.table))
+        exportbutton = tk.ttk.Button(button_frame,text="Export", command=lambda: controller.exportToHtml(self.table))
         exportbutton.pack(side=tk.LEFT)
+        #define the button list frame 
+        self.button_list_frame = None
     def load_data(self):
         global filepath
         #button frame
-        button_list_frame = tk.Frame(self)
-        button_list_frame.pack(pady=20)
+        if self.button_list_frame:
+            self.button_list_frame.destroy()
+        
+        self.button_list_frame = tk.Frame(self)
+        self.button_list_frame.pack(pady=20)
         for i in run_parser.runReader(filepath):
             #add the button
-            groupbutton = tk.ttk.Button(button_list_frame,text=os.path.basename(i),command=lambda: self.loadtable())
+            groupbutton = tk.ttk.Button(self.button_list_frame,text=os.path.basename(i),command=lambda: self.loadtable())
             groupbutton.pack(side=tk.LEFT)
     #load the table
     def loadtable(self,groupdf):
@@ -162,11 +160,11 @@ class TopPerformers(tk.Frame):
         button_frame = tk.Frame(self)
         button_frame.pack(side=tk.TOP, fill=tk.X)
         #pack the home button
-        homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton = tk.ttk.Button(button_frame, text="Home", command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.LEFT)
         #export button
         # Initialize with sample data
-        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.df))
+        exportbutton = tk.ttk.Button(button_frame, text="Export", command=lambda: controller.exportToHtml(self.df))
         exportbutton.pack(side=tk.LEFT)
         #display the data frame
         # create a container
@@ -202,10 +200,10 @@ class BottomPerformers(tk.Frame):
         button_frame = tk.Frame(self)
         button_frame.pack(side=tk.TOP, fill=tk.X)
         #pack the home button
-        homebutton = tk.ttk.Button(button_frame, image=controller.homebuttonicon, command=lambda: controller.show_frame(DashBoard))
+        homebutton = tk.ttk.Button(button_frame, text="Home", command=lambda: controller.show_frame(DashBoard))
         homebutton.pack(side=tk.LEFT)
         #export button
-        exportbutton = tk.ttk.Button(button_frame, image=controller.exportbuttonicon, command=lambda: controller.exportToHtml(self.df))
+        exportbutton = tk.ttk.Button(button_frame, text="Export", command=lambda: controller.exportToHtml(self.df))
         exportbutton.pack(side=tk.LEFT)
         # create a container
         self.table_frame = tk.Frame(self)
