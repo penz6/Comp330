@@ -8,6 +8,7 @@ from run_parser import runReader
 from grp_parser import grpReader
 from FileReader import fileReader
 from GoodAndBadList import Lists
+from History import HistoryManager  # Import the HistoryManager class
 import pandas as pd
 from zscore_calculator import analyze_sections
 
@@ -25,6 +26,8 @@ class TerminalTester:
         self.bottom_performers = None
         self.sec_data = None
         self.zscore_results = None
+        # Initialize the HistoryManager
+        self.history = HistoryManager()
         self.handlers = {
             '1': self.load_run,
             '2': self.display_groups,
@@ -34,7 +37,8 @@ class TerminalTester:
             '6': self.export_data,
             '7': self.read_sec_file,
             '8': self.perform_zscore,
-            '9': self.exit_program
+            '9': self.manage_history,  # Add new handler for history management
+            '0': self.exit_program     # Changed from 9 to 0 to accommodate new option
         }
 
 
@@ -58,9 +62,10 @@ class TerminalTester:
         print("6. Export data to HTML")
         print("7. Read individual SEC file")
         print("8. Perform Z-score analysis")
-        print("9. Exit")
+        print("9. Manage student history")  # New option
+        print("0. Exit")  # Changed from 9 to 0
         print("="*50)
-        return input("Select an option (1-9): ")
+        return input("Select an option (0-9): ")  # Updated range
 
 
     def find_run_files(self, base_dir=None):
@@ -204,7 +209,6 @@ class TerminalTester:
         try:
             print("Loading top performers (A, A-)...")
             self.top_performers = Lists.goodList(self.run_file)
-            
             if self.top_performers.empty:
                 print("No top performers found!")
             else:
@@ -212,6 +216,13 @@ class TerminalTester:
                 pd.set_option('display.max_rows', None)
                 print(self.top_performers)
                 pd.reset_option('display.max_rows')
+                # Ask if user wants to update the history
+                update_history = input("\nUpdate Good List history with these students? (y/n): ")
+                if update_history.lower() == 'y':
+                    updated_df, already_on_list = self.history.update_good_list(self.top_performers)
+                    if already_on_list:
+                        print(f"\n{len(already_on_list)} students were already on the Good List.")
+                    print(f"Good List updated with {len(self.top_performers) - len(already_on_list)} new students.")
         except Exception as e:
             print(f"Error getting top performers: {e}")
 
@@ -229,7 +240,6 @@ class TerminalTester:
         try:
             print("Loading bottom performers (F, D-)...")
             self.bottom_performers = Lists.badList(self.run_file)
-            
             if self.bottom_performers.empty:
                 print("No bottom performers found!")
             else:
@@ -237,6 +247,13 @@ class TerminalTester:
                 pd.set_option('display.max_rows', None)
                 print(self.bottom_performers)
                 pd.reset_option('display.max_rows')
+                # Ask if user wants to update the history
+                update_history = input("\nUpdate Work List history with these students? (y/n): ")
+                if update_history.lower() == 'y':
+                    updated_df, already_on_list = self.history.update_work_list(self.bottom_performers)
+                    if already_on_list:
+                        print(f"\n{len(already_on_list)} students were already on the Work List.")
+                    print(f"Work List updated with {len(self.bottom_performers) - len(already_on_list)} new students.")
         except Exception as e:
             print(f"Error getting bottom performers: {e}")
 
@@ -253,9 +270,10 @@ class TerminalTester:
         print("2. Export bottom performers")
         print("3. Export SEC file data")
         print("4. Export Z-score analysis")
-        print("5. Cancel Export")
-        export_choice = input("Select data to export (1-5): ")
-        
+        print("5. Export historical Good List")  # New option
+        print("6. Export historical Work List")  # New option
+        print("7. Cancel Export")
+        export_choice = input("Select data to export (1-7): ")
         if export_choice == '1':
             if self.top_performers is None:
                 print("Error: Please load top performers first (option 4)!")
@@ -277,6 +295,18 @@ class TerminalTester:
                 return
             self.export_to_html(self.zscore_results, "zscore_analysis")
         elif export_choice == '5':
+            good_list = self.history.get_good_list()
+            if good_list.empty:
+                print("Error: No historical Good List data found!")
+                return
+            self.export_to_html(good_list, "historical_good_list")
+        elif export_choice == '6':
+            work_list = self.history.get_work_list()
+            if work_list.empty:
+                print("Error: No historical Work List data found!")
+                return
+            self.export_to_html(work_list, "historical_work_list")
+        elif export_choice == '7':
             print("Export cancelled.")
             return
         else:
@@ -378,19 +408,72 @@ class TerminalTester:
                 # Print all section results
                 print("\nSection Z-score Analysis:")
                 print("-" * 80)
-                print(f"{'Section':<15} {'GPA':<6} {'Count':<6} {'Z-score':<10} {'P-value':<10} {'Significant':<10}")
+                print(f"{'Section':<45} {'GPA':<6} {'Count':<6} {'Z-score':<10} {'P-value':<10} {'Significant':<10}")
                 print("-" * 80)
                 
+                # Path shortening logic to enshure more readable output
+                def shorten_section_path(section_path):
+                    marker = "COMSC330_POC_Data"
+                    idx = section_path.find(marker)
+                    if idx != -1:
+                        return section_path[idx:]
+                    return section_path
+
                 for result in result_data:
                     z_score = result['z_score']
                     p_value = result['p_value']
                     z_display = f"{z_score:.2f}" if isinstance(z_score, (int, float)) else z_score
                     p_display = f"{p_value:.4f}" if isinstance(p_value, (int, float)) else p_value
-                    
-                    print(f"{result['section']:<15} {result['section_gpa']:<6} {result['section_count']:<6} {z_display:<10} {p_display:<10} {'Yes' if result['significant'] else 'No':<10}")
+                    section_short = shorten_section_path(result['section'])
+                    print(f"{section_short:<45} {result['section_gpa']:<6} {result['section_count']:<6} {z_display:<10} {p_display:<10} {'Yes' if result['significant'] else 'No':<10}")
         
         except Exception as e:
             print(f"Error performing Z-score analysis: {e}")
+
+
+    def manage_history(self):
+        """
+        Provide options for managing student history data, including viewing historical
+        lists and checking individual student history.
+        """
+        print("\nHistory Management Options:")
+        print("1. View historical Good List")
+        print("2. View historical Work List")
+        print("3. Check student history")
+        print("4. Return to main menu")
+        history_choice = input("Select an option (1-4): ")
+        if history_choice == '1':
+            good_list = self.history.get_good_list()
+            if good_list.empty:
+                print("No historical Good List data found!")
+            else:
+                print(f"\nHistorical Good List ({len(good_list)} students):")
+                pd.set_option('display.max_rows', None)
+                print(good_list)
+                pd.reset_option('display.max_rows')
+        elif history_choice == '2':
+            work_list = self.history.get_work_list()
+            if work_list.empty:
+                print("No historical Work List data found!")
+            else:
+                print(f"\nHistorical Work List ({len(work_list)} students):")
+                pd.set_option('display.max_rows', None)
+                print(work_list)
+                pd.reset_option('display.max_rows')
+        elif history_choice == '3':
+            student_id = input("Enter student ID to check: ")
+            try:
+                student_id = int(student_id)
+                history = self.history.check_student_history(student_id)
+                print(f"\nHistory for Student ID: {student_id}")
+                print(f"Previously on Good List: {'Yes' if history['good_list'] else 'No'}")
+                print(f"Previously on Work List: {'Yes' if history['work_list'] else 'No'}")
+            except ValueError:
+                print("Error: Please enter a valid numeric student ID!")
+        elif history_choice == '4':
+            return
+        else:
+            print("Invalid option!")
 
 
     def exit_program(self):
