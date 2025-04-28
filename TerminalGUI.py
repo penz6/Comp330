@@ -21,6 +21,10 @@ import json
 import threading
 import queue
 
+# Add debug utility imports
+import datetime
+import traceback
+
 # Attempt to import project modules, handle potential import errors
 try:
     from run_parser import runReader
@@ -32,6 +36,22 @@ try:
 except ImportError as e:
     messagebox.showerror("Import Error", f"Failed to import required module: {e}\nMake sure all project files are in the correct location.")
     sys.exit(1)
+
+# Add debug utility function
+def debug_print(category, message, data=None):
+    """Print formatted debug information to the terminal"""
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+    print(f"[DEBUG][{timestamp}][{category}] {message}")
+    if data is not None:
+        if isinstance(data, pd.DataFrame):
+            print(f"  DataFrame info: {len(data)} rows, {list(data.columns)} columns")
+            print(f"  Column types: {data.dtypes}")
+            if 'id' in data.columns or 'ID' in data.columns:
+                id_col = 'id' if 'id' in data.columns else 'ID'
+                print(f"  ID column '{id_col}' sample: {data[id_col].head(3).tolist()}")
+                print(f"  ID column type: {data[id_col].dtype}")
+        else:
+            print(f"  {data}")
 
 class TerminalGUIApp(tk.Tk):
     def __init__(self):
@@ -50,6 +70,7 @@ class TerminalGUIApp(tk.Tk):
         self.sec_data = None
         self.zscore_results = None
         self.history = HistoryManager()
+        debug_print("INIT", "HistoryManager initialized", self.history)
         self.recent_files = self._load_recent_files()
         self.search_var = tk.StringVar()
         
@@ -464,8 +485,13 @@ class TerminalGUIApp(tk.Tk):
         history_update_func = self.history.update_good_list if top else self.history.update_work_list
         history_list_name = "Good List" if top else "Work List"
 
+        debug_print("PERFORMERS", f"Starting {list_type} performers display", {"run_file": self.run_file})
+
         try:
+            debug_print("PERFORMERS", f"Calling {list_func.__name__} function")
             performers_df = list_func(self.run_file)
+            debug_print("PERFORMERS", f"{list_type} performers data loaded", performers_df)
+            
             if top:
                 self.top_performers = performers_df
             else:
@@ -474,26 +500,51 @@ class TerminalGUIApp(tk.Tk):
             self._display_dataframe(performers_df, f"{list_type} Performers")
 
             if not performers_df.empty:
+                # Check all columns case-insensitively for ID
+                debug_print("ID_CHECK", "Looking for ID column", {"columns": list(performers_df.columns)})
+                id_cols = [col for col in performers_df.columns if col.lower() == 'id']
+                debug_print("ID_CHECK", f"Found ID columns: {id_cols}")
+                
                 # Ensure 'id' column exists for history update
                 id_col = next((col for col in performers_df.columns if col.lower() == 'id'), None)
                 if not id_col:
-                     self._show_message("Warning", f"Cannot update history: '{list_type} Performers' data is missing an 'id' column.", "warning")
-                     return
+                    debug_print("ERROR", f"ID column missing in {list_type} performers data", performers_df.columns)
+                    self._show_message("Warning", f"Cannot update history: '{list_type} Performers' data is missing an 'id' column.", "warning")
+                    return
 
                 # Rename if necessary (case-insensitive match)
                 if id_col != 'id':
+                    debug_print("ID_RENAME", f"Renaming column '{id_col}' to 'id'", 
+                               {"before_dtype": performers_df[id_col].dtype, "sample": performers_df[id_col].head(3)})
                     performers_df = performers_df.rename(columns={id_col: 'id'})
+                    debug_print("ID_RENAME", "After renaming", 
+                               {"has_id_col": 'id' in performers_df.columns, 
+                                "dtype": performers_df['id'].dtype if 'id' in performers_df.columns else None})
                     if top: self.top_performers = performers_df
                     else: self.bottom_performers = performers_df
 
+                debug_print("HISTORY", f"Before updating {history_list_name}", 
+                           {"df_shape": performers_df.shape, 
+                            "id_sample": performers_df['id'].head(3) if 'id' in performers_df.columns else None})
 
                 update = messagebox.askyesno("Update History", f"Update {history_list_name} history with these {len(performers_df)} students?")
                 if update:
-                    updated_df, already_on_list = history_update_func(performers_df)
-                    new_count = len(performers_df) - len(already_on_list)
-                    self._show_message("History Updated", f"{history_list_name} updated.\nNew students added: {new_count}\nAlready on list: {len(already_on_list)}")
+                    debug_print("HISTORY", f"Updating {history_list_name}", {"id_col_exists": 'id' in performers_df.columns})
+                    try:
+                        updated_df, already_on_list = history_update_func(performers_df)
+                        debug_print("HISTORY", f"{history_list_name} update result", 
+                                   {"updated_df_shape": updated_df.shape if updated_df is not None else None, 
+                                    "already_on_list_count": len(already_on_list)})
+                        new_count = len(performers_df) - len(already_on_list)
+                        self._show_message("History Updated", f"{history_list_name} updated.\nNew students added: {new_count}\nAlready on list: {len(already_on_list)}")
+                    except Exception as update_err:
+                        debug_print("ERROR", f"Error updating {history_list_name}", 
+                                    {"error": str(update_err), "traceback": traceback.format_exc()})
+                        self._show_message(f"History Update Error", f"Failed to update {history_list_name}: {update_err}", "error")
 
         except Exception as e:
+            debug_print("ERROR", f"Error in display_performers({top})", 
+                       {"error": str(e), "traceback": traceback.format_exc()})
             self._show_message(f"Error Loading {list_type} Performers", f"An error occurred: {e}", "error")
             if top: self.top_performers = None
             else: self.bottom_performers = None
@@ -619,6 +670,7 @@ class TerminalGUIApp(tk.Tk):
 
     def manage_history(self):
         """Opens a new window for history management."""
+        debug_print("HISTORY", "Opening history management window")
         history_window = tk.Toplevel(self)
         history_window.title("Student History Management")
         history_window.geometry("700x500")
@@ -630,6 +682,7 @@ class TerminalGUIApp(tk.Tk):
         good_list_frame = ttk.Frame(notebook, padding="10")
         notebook.add(good_list_frame, text='Good List History')
         good_list_df = self.history.get_good_list()
+        debug_print("HISTORY", "Retrieved good list history", good_list_df)
         if good_list_df.empty:
             ttk.Label(good_list_frame, text="Good List history is empty.").pack(pady=20)
         else:
@@ -643,6 +696,7 @@ class TerminalGUIApp(tk.Tk):
         work_list_frame = ttk.Frame(notebook, padding="10")
         notebook.add(work_list_frame, text='Work List History')
         work_list_df = self.history.get_work_list()
+        debug_print("HISTORY", "Retrieved work list history", work_list_df)
         if work_list_df.empty:
             ttk.Label(work_list_frame, text="Work List history is empty.").pack(pady=20)
         else:
@@ -665,28 +719,31 @@ class TerminalGUIApp(tk.Tk):
         def check_student():
             try:
                 student_id = int(student_id_entry.get())
+                debug_print("HISTORY", f"Checking student history for ID: {student_id}")
                 history_info = self.history.check_student_history(student_id)
+                debug_print("HISTORY", "Student history check result", history_info)
                 result_text = f"Student {student_id}: Good List: {'Yes' if history_info['good_list'] else 'No'}, Work List: {'Yes' if history_info['work_list'] else 'No'}"
                 result_label.config(text=result_text)
             except ValueError:
                 result_label.config(text="Invalid ID. Please enter a number.")
             except Exception as e:
-                 result_label.config(text=f"Error checking history: {e}")
-
+                debug_print("ERROR", f"Error checking student history", {"error": str(e)})
+                result_label.config(text=f"Error checking history: {e}")
 
         ttk.Button(check_student_frame, text="Check", command=check_student).pack(side=tk.LEFT, padx=5)
 
         notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
-
     def auto_process(self):
         """Runs the full processing pipeline automatically."""
+        debug_print("AUTO", "Starting auto-process workflow")
         self._show_message("Auto-Process", "Starting automatic processing pipeline...")
         self.status_var.set("Auto-processing started...")
 
         # 1. Load RUN file (reuse existing method, but handle cancellation)
         self.load_run()
         if not self.run_file:
+            debug_print("AUTO", "Auto-process cancelled: No RUN file selected")
             self._show_message("Auto-Process", "Auto-process cancelled: No RUN file selected.", "warning")
             return
 
@@ -695,6 +752,7 @@ class TerminalGUIApp(tk.Tk):
 
         def update_status(message):
             nonlocal current_step
+            debug_print("AUTO", f"Step {current_step}/{progress_steps}: {message}")
             self.status_var.set(f"[{current_step}/{progress_steps}] {message}")
             self._show_message("Auto-Process Status", f"[{current_step}/{progress_steps}] {message}")
             current_step += 1
@@ -715,34 +773,73 @@ class TerminalGUIApp(tk.Tk):
             # 4. Process top performers
             update_status("Processing top performers...")
             self.top_performers = Lists.goodList(self.run_file)
+            debug_print("AUTO", "Top performers processed", self.top_performers)
             if self.top_performers.empty:
                 update_status("No top performers found.")
             else:
                 update_status(f"Found {len(self.top_performers)} top performers.")
                 # Attempt history update (optional, could be made configurable)
+                debug_print("AUTO", "Looking for ID column in top performers", {"columns": list(self.top_performers.columns)})
                 id_col = next((col for col in self.top_performers.columns if col.lower() == 'id'), None)
                 if id_col:
-                    if id_col != 'id': self.top_performers = self.top_performers.rename(columns={id_col: 'id'})
-                    _, already_on_list = self.history.update_good_list(self.top_performers)
-                    update_status(f"Good List updated ({len(self.top_performers) - len(already_on_list)} new).")
+                    if id_col != 'id': 
+                        debug_print("AUTO", f"Renaming column '{id_col}' to 'id' in top performers", 
+                                   {"before_type": self.top_performers[id_col].dtype})
+                        self.top_performers = self.top_performers.rename(columns={id_col: 'id'})
+                        debug_print("AUTO", "After renaming", 
+                                   {"has_id_column": 'id' in self.top_performers.columns,
+                                    "id_dtype": self.top_performers['id'].dtype if 'id' in self.top_performers.columns else None})
+                    
+                    debug_print("AUTO", "Updating good list history", 
+                               {"id_column_sample": self.top_performers['id'].head(3) if 'id' in self.top_performers.columns else None})
+                    try:
+                        updated_df, already_on_list = self.history.update_good_list(self.top_performers)
+                        debug_print("AUTO", "Good list update results", 
+                                   {"updated_df_rows": len(updated_df) if updated_df is not None else 0,
+                                    "already_on_list": len(already_on_list)})
+                        update_status(f"Good List updated ({len(self.top_performers) - len(already_on_list)} new).")
+                    except Exception as update_err:
+                        debug_print("ERROR", "Failed to update good list", 
+                                  {"error": str(update_err), "traceback": traceback.format_exc()})
+                        update_status(f"Error updating Good List: {update_err}")
                 else:
+                    debug_print("AUTO", "No ID column found in top performers", {"columns": list(self.top_performers.columns)})
                     update_status("Skipping Good List history update (no 'id' column).")
-
 
             # 5. Process bottom performers
             update_status("Processing bottom performers...")
             self.bottom_performers = Lists.badList(self.run_file)
+            debug_print("AUTO", "Bottom performers processed", self.bottom_performers)
             if self.bottom_performers.empty:
                 update_status("No bottom performers found.")
             else:
                 update_status(f"Found {len(self.bottom_performers)} bottom performers.")
                  # Attempt history update
+                debug_print("AUTO", "Looking for ID column in bottom performers", {"columns": list(self.bottom_performers.columns)})
                 id_col = next((col for col in self.bottom_performers.columns if col.lower() == 'id'), None)
                 if id_col:
-                    if id_col != 'id': self.bottom_performers = self.bottom_performers.rename(columns={id_col: 'id'})
-                    _, already_on_list = self.history.update_work_list(self.bottom_performers)
-                    update_status(f"Work List updated ({len(self.bottom_performers) - len(already_on_list)} new).")
+                    if id_col != 'id': 
+                        debug_print("AUTO", f"Renaming column '{id_col}' to 'id' in bottom performers", 
+                                   {"before_type": self.bottom_performers[id_col].dtype})
+                        self.bottom_performers = self.bottom_performers.rename(columns={id_col: 'id'})
+                        debug_print("AUTO", "After renaming", 
+                                   {"has_id_column": 'id' in self.bottom_performers.columns,
+                                    "id_dtype": self.bottom_performers['id'].dtype if 'id' in self.bottom_performers.columns else None})
+                    
+                    debug_print("AUTO", "Updating work list history", 
+                               {"id_column_sample": self.bottom_performers['id'].head(3) if 'id' in self.bottom_performers.columns else None})
+                    try:
+                        updated_df, already_on_list = self.history.update_work_list(self.bottom_performers)
+                        debug_print("AUTO", "Work list update results", 
+                                   {"updated_df_rows": len(updated_df) if updated_df is not None else 0,
+                                    "already_on_list": len(already_on_list)})
+                        update_status(f"Work List updated ({len(self.bottom_performers) - len(already_on_list)} new).")
+                    except Exception as update_err:
+                        debug_print("ERROR", "Failed to update work list", 
+                                  {"error": str(update_err), "traceback": traceback.format_exc()})
+                        update_status(f"Error updating Work List: {update_err}")
                 else:
+                    debug_print("AUTO", "No ID column found in bottom performers", {"columns": list(self.bottom_performers.columns)})
                     update_status("Skipping Work List history update (no 'id' column).")
 
             # 6. Read first SEC file (optional, find one automatically)
@@ -778,6 +875,7 @@ class TerminalGUIApp(tk.Tk):
 
 
         except Exception as e:
+            debug_print("ERROR", "Auto-process error", {"error": str(e), "traceback": traceback.format_exc()})
             self._show_message("Auto-Process Error", f"Pipeline stopped due to error:\n{e}", "error")
             self.status_var.set(f"Auto-process error: {str(e)[:50]}...")
 
@@ -785,10 +883,13 @@ class TerminalGUIApp(tk.Tk):
 if __name__ == "__main__":
     # Ensure History files exist before starting
     try:
+        debug_print("STARTUP", "Initializing history files")
         HistoryManager() # This will create files if they don't exist
     except Exception as e:
+         debug_print("ERROR", "History initialization failed", {"error": str(e)})
          messagebox.showerror("History Init Error", f"Could not initialize history files: {e}")
          sys.exit(1)
 
+    debug_print("STARTUP", "Starting TerminalGUIApp")
     app = TerminalGUIApp()
     app.mainloop()
