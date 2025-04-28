@@ -93,8 +93,12 @@ class TerminalTester:
             print(f"Warning: Base directory '{base_dir}' does not exist.")
             return run_files
 
-        for file in base_dir.rglob("*.run"):
-            run_files.append(str(file.resolve()))
+        # Accept .run, .run.txt, .RUN.txt (case-insensitive)
+        for file in base_dir.rglob("*"):
+            if file.is_file():
+                fname = file.name.lower()
+                if fname.endswith('.run') or fname.endswith('.run.txt'):
+                    run_files.append(str(file.resolve()))
 
         return run_files
 
@@ -125,17 +129,25 @@ class TerminalTester:
         available RUN files found in the data directory, or allows for manual
         entry of a custom path. Updates the internal state with the selected file.
         """
-        available_runs = self.find_run_files()
+        # Accept .run, .run.txt, .RUN.txt
+        def is_run_file(filename):
+            fname = filename.lower()
+            return fname.endswith('.run') or fname.endswith('.run.txt')
+
+        available_runs = []
+        # Search for .run, .run.txt files
+        for file in self.find_run_files():
+            if is_run_file(file):
+                available_runs.append(file)
         
         if not available_runs:
             print("No RUN files found in the data directory!")
             custom_path = input("Would you like to enter a custom path? (y/n): ")
             if custom_path.lower() == 'y':
                 file_path = input("Enter the path to your .RUN file: ")
-                if not file_path.lower().endswith('.run'):
-                    print("Error: Please provide a valid .RUN file!")
+                if not is_run_file(file_path):
+                    print("Error: Please provide a valid .RUN file (.run or .run.txt)!")
                     return
-                
                 self.run_file = file_path
                 print(f"Successfully loaded RUN file: {self.run_file}")
             return
@@ -150,12 +162,11 @@ class TerminalTester:
                 self.run_file = available_runs[int(selection) - 1]
             else:
                 # Assume it's a custom path
-                if not selection.lower().endswith('.run'):
-                    print("Error: Please provide a valid .RUN file!")
+                if not is_run_file(selection):
+                    print("Error: Please provide a valid .RUN file (.run or .run.txt)!")
                     return
                 self.run_file = selection
-                
-            print(f"Successfully loaded RUN file: {self.run_file}")
+                print(f"Successfully loaded RUN file: {self.run_file}")
         except Exception as e:
             print(f"Error loading RUN file: {e}")
 
