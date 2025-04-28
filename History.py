@@ -50,8 +50,8 @@ class HistoryManager:
         already_on_list = []
         if os.path.exists(file_path):
             existing = pd.read_csv(file_path)
-            new_entries = new_data[~new_data['id'].isin(existing['id'])]
-            already_on_list = new_data[new_data['id'].isin(existing['id'])]['id'].tolist()
+            new_entries = new_data[~new_data['ID'].isin(existing['id'])]
+            already_on_list = new_data[new_data['ID'].isin(existing['id'])]['id'].tolist()
             updated = pd.concat([existing, new_entries], ignore_index=True)
         else:
             updated = new_data
