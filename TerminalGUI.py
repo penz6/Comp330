@@ -2,11 +2,16 @@
 # TerminalGUI.py - GUI interface for grade analysis functionality
 
 """
-Lets try to add some debug statements, as of now the good and work list did not save properly becasue of an ID issue could you create some statemtns that will output the status of certian calls to the terminal so i can have more detailed debugging of the GUI behavior.
+To run this successfully, you need to run the functions from top to bottom when using the GUI.
+The auto process button fails. 
+Persistance works but updating the history does not work. (will be fixed asap)
 
-Dont try to fix the described saving issue, we will use the outputs froo the debug that yoou create to do that.
+To save the list, just go ointoo the hiistorical list folder and delete the files. 
+They can be resaved easily by running the program again.
 
-Only Create these debug statemts inside the TerminalGUI file for now.
+Only a handful of fixes are needed for full functionality.
+planning on do them morning of the 29th (project work day)
+
 """
 
 import os
