@@ -42,7 +42,7 @@ try:
     from FileReader import fileReader
     from GoodAndBadList import Lists
     from History import HistoryManager
-    from zscore_calculator import analyze_sections
+    from zscore_calculator import ZScoreCalculator
 except ImportError as e:
     messagebox.showerror("Import Error", f"Failed to import required module: {e}\nMake sure all project files are in the correct location.")
     sys.exit(1)
@@ -668,7 +668,7 @@ class TerminalGUIApp(tk.Tk):
                 self._show_message("Error", "Invalid threshold value. Please enter a number.", "error")
                 return
 
-            result_data, self.zscore_results = analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
+            result_data, self.zscore_results = ZScoreCalculator.analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
 
             if self.zscore_results is None or self.zscore_results.empty:
                  self._show_message("Z-Score Analysis", "No results generated from the analysis.")
@@ -868,7 +868,7 @@ class TerminalGUIApp(tk.Tk):
             # 7. Perform Z-score analysis
             update_status("Performing Z-score analysis (threshold 1.96)...")
             threshold = 1.96
-            result_data, self.zscore_results = analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
+            result_data, self.zscore_results = ZScoreCalculator.analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
             if not result_data:
                 update_status("No Z-score results found.")
             else:
