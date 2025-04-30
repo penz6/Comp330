@@ -12,6 +12,11 @@ They can be resaved easily by running the program again.
 Only a handful of fixes are needed for full functionality.
 planning on do them morning of the 29th (project work day)
 
+
+
+1. set up new column for classes that bin a student into the good or bad list. 
+2. set up more descriptive grade histogram output from the zcore calculator.
+2.5. should show number of each letter grad in the class. 
 """
 
 import os
@@ -37,7 +42,7 @@ try:
     from FileReader import fileReader
     from GoodAndBadList import Lists
     from History import HistoryManager
-    from zscore_calculator import analyze_sections
+    from zscore_calculator import ZScoreCalculator
 except ImportError as e:
     messagebox.showerror("Import Error", f"Failed to import required module: {e}\nMake sure all project files are in the correct location.")
     sys.exit(1)
@@ -399,7 +404,7 @@ class TerminalGUIApp(tk.Tk):
             ('All files', '*.*')
         )
         # Default directory (can be adjusted)
-        initial_dir = Path(__file__).parent / "COMSC330_POC_Data"
+        initial_dir = Path(__file__).parent / "COMSC330_POC_Data/Runs"
         if not initial_dir.exists():
             initial_dir = Path.home()
 
@@ -489,11 +494,13 @@ class TerminalGUIApp(tk.Tk):
         list_func = Lists.goodList if top else Lists.badList
         history_update_func = self.history.update_good_list if top else self.history.update_work_list
         history_list_name = "Good List" if top else "Work List"
+        # run_file_basename = os.path.basename(self.run_file) # No longer needed for history context here
 
         debug_print("PERFORMERS", f"Starting {list_type} performers display", {"run_file": self.run_file})
 
         try:
             debug_print("PERFORMERS", f"Calling {list_func.__name__} function")
+            # performers_df now includes 'section_source'
             performers_df = list_func(self.run_file)
             debug_print("PERFORMERS", f"{list_type} performers data loaded", performers_df)
             
@@ -530,20 +537,24 @@ class TerminalGUIApp(tk.Tk):
 
                 debug_print("HISTORY", f"Before updating {history_list_name}", 
                            {"df_shape": performers_df.shape, 
-                            "id_sample": performers_df['id'].head(3) if 'id' in performers_df.columns else None})
+                            "id_sample": performers_df['id'].head(3) if 'id' in performers_df.columns else None,
+                            "section_sample": performers_df['section_source'].head(3) if 'section_source' in performers_df.columns else None})
 
-                update = messagebox.askyesno("Update History", f"Update {history_list_name} history with these {len(performers_df)} students?")
+                # Update confirmation message
+                update = messagebox.askyesno("Update History", f"Update {history_list_name} history with these {len(performers_df)} student entries?\n(Section info is included in the data)")
                 if update:
+                    # Remove section_name argument - it's now in performers_df
                     debug_print("HISTORY", f"Updating {history_list_name}", {"id_col_exists": 'id' in performers_df.columns})
                     try:
-                        updated_df, already_on_list = history_update_func(performers_df)
-                        debug_print("HISTORY", f"{history_list_name} update result", 
-                                   {"updated_df_shape": updated_df.shape if updated_df is not None else None, 
-                                    "already_on_list_count": len(already_on_list)})
-                        new_count = len(performers_df) - len(already_on_list)
-                        self._show_message("History Updated", f"{history_list_name} updated.\nNew students added: {new_count}\nAlready on list: {len(already_on_list)}")
+                        # Pass the performers_df directly
+                        updated_df, updated_or_existing_ids = history_update_func(performers_df)
+                        debug_print("HISTORY", f"{history_list_name} update result",
+                                   {"updated_df_shape": updated_df.shape if updated_df is not None else None,
+                                    "updated_or_existing_ids_count": len(updated_or_existing_ids)})
+                        # Message needs adjustment as we don't easily know "new" vs "updated" here
+                        self._show_message("History Updated", f"{history_list_name} updated with {len(performers_df)} entries.\n{len(updated_or_existing_ids)} students were already present or updated.")
                     except Exception as update_err:
-                        debug_print("ERROR", f"Error updating {history_list_name}", 
+                        debug_print("ERROR", f"Error updating {history_list_name}",
                                     {"error": str(update_err), "traceback": traceback.format_exc()})
                         self._show_message(f"History Update Error", f"Failed to update {history_list_name}: {update_err}", "error")
 
@@ -657,7 +668,7 @@ class TerminalGUIApp(tk.Tk):
                 self._show_message("Error", "Invalid threshold value. Please enter a number.", "error")
                 return
 
-            result_data, self.zscore_results = analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
+            result_data, self.zscore_results = ZScoreCalculator.analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
 
             if self.zscore_results is None or self.zscore_results.empty:
                  self._show_message("Z-Score Analysis", "No results generated from the analysis.")
@@ -750,8 +761,10 @@ class TerminalGUIApp(tk.Tk):
         if not self.run_file:
             debug_print("AUTO", "Auto-process cancelled: No RUN file selected")
             self._show_message("Auto-Process", "Auto-process cancelled: No RUN file selected.", "warning")
+            self.status_var.set("Ready") # Reset status
             return
 
+        # run_file_basename = os.path.basename(self.run_file) # Get run file name for context
         progress_steps = 7
         current_step = 1
 
@@ -777,75 +790,64 @@ class TerminalGUIApp(tk.Tk):
 
             # 4. Process top performers
             update_status("Processing top performers...")
-            self.top_performers = Lists.goodList(self.run_file)
+            self.top_performers = Lists.goodList(self.run_file) # Now includes section_source
             debug_print("AUTO", "Top performers processed", self.top_performers)
             if self.top_performers.empty:
                 update_status("No top performers found.")
             else:
-                update_status(f"Found {len(self.top_performers)} top performers.")
-                # Attempt history update (optional, could be made configurable)
-                debug_print("AUTO", "Looking for ID column in top performers", {"columns": list(self.top_performers.columns)})
-                id_col = next((col for col in self.top_performers.columns if col.lower() == 'id'), None)
-                if id_col:
-                    if id_col != 'id': 
-                        debug_print("AUTO", f"Renaming column '{id_col}' to 'id' in top performers", 
-                                   {"before_type": self.top_performers[id_col].dtype})
-                        self.top_performers = self.top_performers.rename(columns={id_col: 'id'})
-                        debug_print("AUTO", "After renaming", 
-                                   {"has_id_column": 'id' in self.top_performers.columns,
-                                    "id_dtype": self.top_performers['id'].dtype if 'id' in self.top_performers.columns else None})
-                    
-                    debug_print("AUTO", "Updating good list history", 
-                               {"id_column_sample": self.top_performers['id'].head(3) if 'id' in self.top_performers.columns else None})
+                update_status(f"Found {len(self.top_performers)} top performer entries.")
+                # Attempt history update
+                # ... (code to check for 'id' column and rename if necessary) ...
+
+                if 'id' in self.top_performers.columns and 'section_source' in self.top_performers.columns:
+                    debug_print("AUTO", "Updating good list history",
+                               {"id_column_sample": self.top_performers['id'].head(3),
+                                "section_sample": self.top_performers['section_source'].head(3)})
                     try:
-                        updated_df, already_on_list = self.history.update_good_list(self.top_performers)
-                        debug_print("AUTO", "Good list update results", 
+                        # Pass dataframe directly, remove section_name
+                        updated_df, updated_or_existing_ids = self.history.update_good_list(self.top_performers)
+                        debug_print("AUTO", "Good list update results",
                                    {"updated_df_rows": len(updated_df) if updated_df is not None else 0,
-                                    "already_on_list": len(already_on_list)})
-                        update_status(f"Good List updated ({len(self.top_performers) - len(already_on_list)} new).")
+                                    "updated_or_existing_ids": len(updated_or_existing_ids)})
+                        update_status(f"Good List updated ({len(self.top_performers)} entries processed).")
                     except Exception as update_err:
-                        debug_print("ERROR", "Failed to update good list", 
+                        debug_print("ERROR", "Failed to update good list",
                                   {"error": str(update_err), "traceback": traceback.format_exc()})
                         update_status(f"Error updating Good List: {update_err}")
                 else:
-                    debug_print("AUTO", "No ID column found in top performers", {"columns": list(self.top_performers.columns)})
-                    update_status("Skipping Good List history update (no 'id' column).")
+                    debug_print("AUTO", "Skipping Good List history update (missing 'id' or 'section_source' column).", {"columns": list(self.top_performers.columns)})
+                    update_status("Skipping Good List history update (missing required columns).")
+
 
             # 5. Process bottom performers
             update_status("Processing bottom performers...")
-            self.bottom_performers = Lists.badList(self.run_file)
+            self.bottom_performers = Lists.badList(self.run_file) # Now includes section_source
             debug_print("AUTO", "Bottom performers processed", self.bottom_performers)
             if self.bottom_performers.empty:
                 update_status("No bottom performers found.")
             else:
-                update_status(f"Found {len(self.bottom_performers)} bottom performers.")
+                update_status(f"Found {len(self.bottom_performers)} bottom performer entries.")
                  # Attempt history update
-                debug_print("AUTO", "Looking for ID column in bottom performers", {"columns": list(self.bottom_performers.columns)})
-                id_col = next((col for col in self.bottom_performers.columns if col.lower() == 'id'), None)
-                if id_col:
-                    if id_col != 'id': 
-                        debug_print("AUTO", f"Renaming column '{id_col}' to 'id' in bottom performers", 
-                                   {"before_type": self.bottom_performers[id_col].dtype})
-                        self.bottom_performers = self.bottom_performers.rename(columns={id_col: 'id'})
-                        debug_print("AUTO", "After renaming", 
-                                   {"has_id_column": 'id' in self.bottom_performers.columns,
-                                    "id_dtype": self.bottom_performers['id'].dtype if 'id' in self.bottom_performers.columns else None})
-                    
-                    debug_print("AUTO", "Updating work list history", 
-                               {"id_column_sample": self.bottom_performers['id'].head(3) if 'id' in self.bottom_performers.columns else None})
+                # ... (code to check for 'id' column and rename if necessary) ...
+
+                if 'id' in self.bottom_performers.columns and 'section_source' in self.bottom_performers.columns:
+                    debug_print("AUTO", "Updating work list history",
+                               {"id_column_sample": self.bottom_performers['id'].head(3),
+                                "section_sample": self.bottom_performers['section_source'].head(3)})
                     try:
-                        updated_df, already_on_list = self.history.update_work_list(self.bottom_performers)
-                        debug_print("AUTO", "Work list update results", 
+                        # Pass dataframe directly, remove section_name
+                        updated_df, updated_or_existing_ids = self.history.update_work_list(self.bottom_performers)
+                        debug_print("AUTO", "Work list update results",
                                    {"updated_df_rows": len(updated_df) if updated_df is not None else 0,
-                                    "already_on_list": len(already_on_list)})
-                        update_status(f"Work List updated ({len(self.bottom_performers) - len(already_on_list)} new).")
+                                    "updated_or_existing_ids": len(updated_or_existing_ids)})
+                        update_status(f"Work List updated ({len(self.bottom_performers)} entries processed).")
                     except Exception as update_err:
-                        debug_print("ERROR", "Failed to update work list", 
+                        debug_print("ERROR", "Failed to update work list",
                                   {"error": str(update_err), "traceback": traceback.format_exc()})
                         update_status(f"Error updating Work List: {update_err}")
                 else:
-                    debug_print("AUTO", "No ID column found in bottom performers", {"columns": list(self.bottom_performers.columns)})
-                    update_status("Skipping Work List history update (no 'id' column).")
+                    debug_print("AUTO", "Skipping Work List history update (missing 'id' or 'section_source' column).", {"columns": list(self.bottom_performers.columns)})
+                    update_status("Skipping Work List history update (missing required columns).")
 
             # 6. Read first SEC file (optional, find one automatically)
             update_status("Loading first available SEC file...")
@@ -866,7 +868,7 @@ class TerminalGUIApp(tk.Tk):
             # 7. Perform Z-score analysis
             update_status("Performing Z-score analysis (threshold 1.96)...")
             threshold = 1.96
-            result_data, self.zscore_results = analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
+            result_data, self.zscore_results = ZScoreCalculator.analyze_sections(self.run_file, self.grp_files, self.sec_files, threshold)
             if not result_data:
                 update_status("No Z-score results found.")
             else:
