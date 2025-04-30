@@ -101,7 +101,7 @@ class ZScoreCalculator:
     @staticmethod
     def calculate_section_stats(section_df):
         """
-        Compute average GPA and count of valid grades for a section.
+        Compute average GPA and count of each letter grade for a section.
 
         Args:
             section_df (DataFrame): Must contain a 'Grade' column.
@@ -109,19 +109,35 @@ class ZScoreCalculator:
         Returns:
             tuple:
                 mean_gpa (float): Average GPA of the section.
-                count (int): Number of valid grades.
+                grade_counts (dict): Dictionary mapping each letter grade to its count.
         """
         if section_df.empty:
-            return 0, 0
+            return 0, {}
         
         # Convert grades to GPA values and filter out excluded grades
-        gpas = [ZScoreCalculator.letter_to_gpa(grade) for grade in section_df['Grade']]
-        gpas = [gpa for gpa in gpas if gpa is not None]  # Filter out None values (excluded grades)
+        grades = section_df['Grade'].tolist()
+        valid_grades = []
+        gpas = []
+        
+        # Process each grade
+        for grade in grades:
+            gpa = ZScoreCalculator.letter_to_gpa(grade)
+            if gpa is not None:  # Only include valid grades
+                valid_grades.append(grade)
+                gpas.append(gpa)
         
         # Calculate mean GPA
         mean_gpa = sum(gpas) / len(gpas) if gpas else 0
         
-        return mean_gpa, len(gpas)
+        # Count occurrences of each letter grade
+        grade_counts = {}
+        for grade in valid_grades:
+            if grade in grade_counts:
+                grade_counts[grade] += 1
+            else:
+                grade_counts[grade] = 1
+        
+        return mean_gpa, grade_counts
 
     @staticmethod
     def calculate_group_stats(section_dfs):
