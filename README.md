@@ -119,23 +119,7 @@ The project is organized as follows:
 
 ## Installation
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone <repository-url> # Replace <repository-url> with the actual URL
-    cd penz6-comp330
-    ```
-
-2.  **Python Requirements:**
-    The project requires Python 3.x and several libraries. Install dependencies using pip:
-    ```bash
-    pip install pandas scipy pandastable sv_ttk Pillow
-    # Optional (if exploring persistence further based on docs):
-    # pip install sqlalchemy alembic
-    ```
-    *Note: `scipy` is used for Z-score calculations.*
-
-3.  **Data Files:**
-    Ensure the `COMSC330_POC_Data/` directory is present in the root of the project, containing the sample `.GRP`, `.RUN`, and `.SEC` files. The scripts are configured to find this data directory relative to their location.
+Download from the releases tab.
 
 ---
 
